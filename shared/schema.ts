@@ -758,10 +758,10 @@ export type Certificate = typeof certificates.$inferSelect;
 
 
 
-// Types pour les permissions
-export type Permission = typeof permissions.$inferSelect;
-export type RolePermission = typeof rolePermissions.$inferSelect;
-export type UserPermission = typeof userPermissions.$inferSelect;
+// Permission tables - À définir plus tard si nécessaire
+// export type Permission = typeof permissions.$inferSelect;
+// export type RolePermission = typeof rolePermissions.$inferSelect; 
+// export type UserPermission = typeof userPermissions.$inferSelect;
 
 // Types étendus pour les vues avec relations
 export type UserWithEstablishment = User & {

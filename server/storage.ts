@@ -24,12 +24,8 @@ import {
   type InsertNotification,
   type InsertExportJob,
   type ExportJob,
-  type SelectHelpContent,
-  type InsertHelpContent,
-  type SelectSystemVersion,
-  type InsertSystemVersion,
-  type SelectEstablishmentBranding,
-  type InsertEstablishmentBranding,
+  type AssessmentAttempt,
+  type InsertAssessmentAttempt,
   type StudyGroup,
   type InsertStudyGroup,
   type StudyGroupMember,
@@ -775,10 +771,7 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(assessments)
-      .where(and(
-        eq(assessments.establishmentId, establishmentId),
-        eq(assessments.isActive, true) // Note: Check if isActive field exists in assessments schema
-      ));
+      .where(eq(assessments.establishmentId, establishmentId));
   }
 
   async getAssessment(id: string): Promise<Assessment | undefined> {
@@ -1218,13 +1211,13 @@ export class DatabaseStorage implements IStorage {
       category: courses.category,
       level: courses.level,
       duration: courses.duration,
-      enrollmentCount: sql<number>`count(${userCourses.id})`
+      enrollmentCount: sql<number>`count(${user_courses.id})`
     })
     .from(courses)
-    .leftJoin(userCourses, eq(courses.id, userCourses.courseId))
+    .leftJoin(user_courses, eq(courses.id, user_courses.courseId))
     .where(eq(courses.establishmentId, establishmentId))
     .groupBy(courses.id, courses.title, courses.description, courses.category, courses.level, courses.duration)
-    .orderBy(desc(sql`count(${userCourses.id})`))
+    .orderBy(desc(sql`count(${user_courses.id})`))
     .limit(limit);
 
     return popularCourses;
@@ -1235,10 +1228,10 @@ export class DatabaseStorage implements IStorage {
     if (!course) return null;
 
     const [{ count: enrollmentCount }] = await db.select({ count: sql<number>`count(*)` })
-      .from(userCourses).where(eq(userCourses.courseId, courseId));
+      .from(user_courses).where(eq(user_courses.courseId, courseId));
 
-    const [{ avg: avgProgress }] = await db.select({ avg: sql<number>`avg(${userCourses.progress})` })
-      .from(userCourses).where(eq(userCourses.courseId, courseId));
+    const [{ avg: avgProgress }] = await db.select({ avg: sql<number>`avg(${user_courses.progress})` })
+      .from(user_courses).where(eq(user_courses.courseId, courseId));
 
     return {
       ...course,
