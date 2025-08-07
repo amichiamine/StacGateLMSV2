@@ -7,7 +7,7 @@ const storage = new DatabaseStorage();
 const helpService = new HelpService(storage);
 
 // Get help contents
-router.get('/', async (req, res) => {
+router.get('/contents', async (req, res) => {
   try {
     const { establishmentId, role, category } = req.query;
     
@@ -30,9 +30,22 @@ router.get('/', async (req, res) => {
 // Get help content by ID
 router.get('/:id', async (req, res) => {
   const { id } = req.params;
+  const { establishmentId } = req.query;
   
-  // Use static data for now since help_contents table doesn't exist
-  const staticHelpContents = [
+  if (!establishmentId) {
+    return res.status(400).json({ error: 'establishmentId is required' });
+  }
+  
+  try {
+    const helpContent = await helpService.getHelpContent(id, establishmentId as string);
+    if (!helpContent) {
+      return res.status(404).json({ error: 'Help content not found' });
+    }
+    res.json(helpContent);
+  } catch (error) {
+    console.error('Database error, falling back to static data:', error);
+    // Fallback to static data if needed
+    const staticHelpContents = [
     {
       id: 'getting-started',
       title: 'Guide de démarrage',
@@ -64,7 +77,8 @@ router.get('/:id', async (req, res) => {
     return res.status(404).json({ error: 'Help content not found' });
   }
   
-  res.json(content);
+    res.json(content);
+  }
 });
 
 // Search help content

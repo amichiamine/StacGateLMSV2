@@ -60,50 +60,16 @@ router.get('/templates', async (req, res) => {
   }
 });
 
-// Get export jobs for user (static data for now - table doesn't exist)
+// Get export jobs for user - now using real database
 router.get('/jobs', async (req, res) => {
   try {
-    const jobs = [
-      {
-        id: 'job-001',
-        type: 'course_data',
-        status: 'completed',
-        progress: 100,
-        createdAt: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
-        completedAt: new Date().toISOString(),
-        downloadUrl: '/downloads/course-data-export.zip',
-        fileName: 'course-data-export.zip',
-        fileSize: 1024000,
-        createdBy: 'admin',
-        establishmentId: 'est-001-main'
-      },
-      {
-        id: 'job-002', 
-        type: 'user_data',
-        status: 'processing',
-        progress: 45,
-        createdAt: new Date(Date.now() - 1800000).toISOString(), // 30 min ago
-        completedAt: null,
-        downloadUrl: null,
-        fileName: 'user-data-export.csv',
-        fileSize: null,
-        createdBy: 'admin',
-        establishmentId: 'est-001-main'
-      },
-      {
-        id: 'job-003', 
-        type: 'assessment_data',
-        status: 'pending',
-        progress: 0,
-        createdAt: new Date().toISOString(),
-        completedAt: null,
-        downloadUrl: null,
-        fileName: 'assessment-data-export.xlsx',
-        fileSize: null,
-        createdBy: 'admin',
-        establishmentId: 'est-001-main'
-      }
-    ];
+    const { userId, establishmentId } = req.query;
+    
+    if (!userId || !establishmentId) {
+      return res.status(400).json({ error: 'userId and establishmentId are required' });
+    }
+    
+    const jobs = await exportService.getExportJobs(userId as string, establishmentId as string);
     res.json(jobs);
   } catch (error) {
     console.error('Error fetching export jobs:', error);
