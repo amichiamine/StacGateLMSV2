@@ -56,22 +56,22 @@ export default function Navigation() {
               </Link>
             </div>
 
-            {/* Mobile Menu Button avec style glassmorphism */}
+            {/* Mobile Menu Button - Version plus visible */}
             <div className="md:hidden">
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="relative w-10 h-10 rounded-lg backdrop-blur-md bg-white/20 border border-white/30 shadow-lg hover:bg-white/30 transition-all duration-300 flex items-center justify-center group"
+                className="relative w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center transform hover:scale-105 border-2 border-white/20"
                 data-testid="mobile-menu-button"
               >
-                <div className="flex flex-col justify-center items-center w-5 h-5">
-                  <span className={`block h-0.5 w-5 bg-gray-700 transition-all duration-300 ${
-                    isMobileMenuOpen ? 'rotate-45 translate-y-1' : ''
+                <div className="flex flex-col justify-center items-center w-6 h-6">
+                  <span className={`block h-1 w-6 bg-white rounded-full transition-all duration-300 ${
+                    isMobileMenuOpen ? 'rotate-45 translate-y-2' : ''
                   }`}></span>
-                  <span className={`block h-0.5 w-5 bg-gray-700 transition-all duration-300 mt-1 ${
+                  <span className={`block h-1 w-6 bg-white rounded-full transition-all duration-300 mt-1 ${
                     isMobileMenuOpen ? 'opacity-0' : ''
                   }`}></span>
-                  <span className={`block h-0.5 w-5 bg-gray-700 transition-all duration-300 mt-1 ${
-                    isMobileMenuOpen ? '-rotate-45 -translate-y-1' : ''
+                  <span className={`block h-1 w-6 bg-white rounded-full transition-all duration-300 mt-1 ${
+                    isMobileMenuOpen ? '-rotate-45 -translate-y-2' : ''
                   }`}></span>
                 </div>
               </button>

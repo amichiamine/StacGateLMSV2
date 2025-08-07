@@ -18,6 +18,7 @@ import {
   Globe
 } from "lucide-react";
 import { Link } from "wouter";
+import Navigation from "@/components/navigation";
 
 interface Establishment {
   id: string;
@@ -158,105 +159,8 @@ export default function PortalPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      {/* Header responsive */}
-      <header className="sticky top-0 z-50 bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg border-b border-gray-200 dark:border-gray-700">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 sm:h-20 relative">
-            {/* Logo */}
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center">
-                <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                  StacGateLMS
-                </h1>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 hidden sm:block">
-                  Portail Multi-Établissements
-                </p>
-              </div>
-            </div>
-
-            {/* Navigation desktop FORCÉE VISIBLE */}
-            <nav className="hidden md:flex items-center space-x-4 lg:space-x-8" style={{ display: 'flex' }}>
-              <Link href="/" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-sm lg:text-base">
-                Accueil
-              </Link>
-              <Link href="/about" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-sm lg:text-base">
-                À propos
-              </Link>
-              <Link href="/contact" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-sm lg:text-base">
-                Contact
-              </Link>
-              <div data-testid="button-login-desktop" style={{ display: 'block', visibility: 'visible' }}>
-                <Link href="/login">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="ml-4 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
-                    style={{ display: 'inline-flex', visibility: 'visible', opacity: '1' }}
-                  >
-                    <span className="hidden lg:inline">🔐 Connexion</span>
-                    <span className="lg:hidden">Login</span>
-                  </Button>
-                </Link>
-              </div>
-            </nav>
-
-            {/* Menu mobile toggle - visible sur petits écrans et tablettes */}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="md:hidden z-50 relative"
-              onClick={(e) => {
-                try {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setIsMobileMenuOpen(prev => !prev);
-                } catch (error) {
-                  console.warn('Erreur toggle menu:', error);
-                }
-              }}
-              data-testid="button-mobile-menu"
-              aria-label="Menu mobile"
-              aria-expanded={isMobileMenuOpen}
-            >
-              {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </Button>
-          </div>
-
-          {/* Menu mobile - responsive pour mobile et tablette */}
-          {isMobileMenuOpen && (
-            <div className="md:hidden py-4 border-t border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm">
-              <nav className="flex flex-col space-y-3 px-2">
-                <Link href="/" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-2 px-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
-                  🏠 Accueil
-                </Link>
-                <Link href="/about" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-2 px-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
-                  ℹ️ À propos
-                </Link>
-                <Link href="/contact" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-2 px-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
-                  📞 Contact
-                </Link>
-                <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-                  <div data-testid="button-login-mobile" style={{ display: 'block', visibility: 'visible' }}>
-                    <Link href="/login" className="block">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="w-full justify-center bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
-                        style={{ display: 'flex', visibility: 'visible', opacity: '1' }}
-                      >
-                        🔐 Connexion
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              </nav>
-            </div>
-          )}
-        </div>
-      </header>
+      {/* Navigation avec Glassmorphism */}
+      <Navigation />
 
       {/* Section Hero avec statistiques */}
       <section className="py-12 sm:py-16 lg:py-24">

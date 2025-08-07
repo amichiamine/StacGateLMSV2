@@ -52,21 +52,21 @@
     --duration-300: 300ms;
   }
   
-  /* FORCE COULEUR TEXTE BLEU MARINE PARTOUT */
-  * {
-    color: #1e3a8a !important;
+  /* Glassmorphism Support */
+  .glassmorphism {
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
   }
   
-  h1, h2, h3, h4, h5, h6, p, span, div, a, button, input, textarea, label, td, th {
-    color: #1e3a8a !important;
-  }
-  
-  .text-white, .dark\:text-white, .text-gray-900, .dark\:text-gray-100 {
-    color: #1e3a8a !important;
-  }
-  
-  .text-gray-600, .text-gray-500, .text-gray-400, .dark\:text-gray-400, .dark\:text-gray-300 {
-    color: #64748b !important;
+  .glass-nav {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
   }
 
   .dark {

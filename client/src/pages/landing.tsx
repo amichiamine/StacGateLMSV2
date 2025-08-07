@@ -1,25 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { GraduationCap, Users, BookOpen, Award, ChevronRight } from "lucide-react";
+import Navigation from "@/components/navigation";
 
 export default function Landing() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-      {/* Header */}
-      <header className="container mx-auto px-4 py-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <GraduationCap className="w-8 h-8 text-blue-600" />
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">StacGateLMS</h1>
-          </div>
-          <Button 
-            onClick={() => window.location.href = '/login'}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            Se connecter
-          </Button>
-        </div>
-      </header>
+      {/* Navigation avec Glassmorphism */}
+      <Navigation />
 
       {/* Hero Section */}
       <main className="container mx-auto px-4 py-12">
