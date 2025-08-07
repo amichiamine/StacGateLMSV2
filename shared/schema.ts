@@ -756,6 +756,23 @@ export type Assessment = typeof assessments.$inferSelect;
 export type AssessmentAttempt = typeof assessment_attempts.$inferSelect;
 export type Certificate = typeof certificates.$inferSelect;
 
+// Insert schemas for assessments
+export const insertAssessmentSchema = createInsertSchema(assessments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAssessmentAttemptSchema = createInsertSchema(assessment_attempts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Insert types
+export type InsertAssessment = z.infer<typeof insertAssessmentSchema>;
+export type InsertAssessmentAttempt = z.infer<typeof insertAssessmentAttemptSchema>;
+
 // Types pour les permissions
 export type Permission = typeof permissions.$inferSelect;
 export type RolePermission = typeof rolePermissions.$inferSelect;
@@ -916,7 +933,7 @@ export const studyGroupMessages = pgTable("study_group_messages", {
     whiteboardData?: any;
     mentions?: string[];
   }>(),
-  replyToId: varchar("reply_to_id").references(() => studyGroupMessages.id),
+  replyToId: varchar("reply_to_id"),
   editedAt: timestamp("edited_at"),
   isDeleted: boolean("is_deleted").default(false),
   createdAt: timestamp("created_at").defaultNow(),
