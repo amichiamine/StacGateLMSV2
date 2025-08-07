@@ -10,7 +10,7 @@ export default function Navigation() {
   return (
     <>
       {/* Glassmorphism Navigation */}
-      <nav className="fixed top-0 w-full z-50 backdrop-blur-md bg-white/80 border-b border-white/20 shadow-lg">
+      <nav className="fixed top-0 w-full z-50 backdrop-blur-md bg-white/20 border-b border-white/30 shadow-2xl glassmorphism">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
@@ -26,15 +26,15 @@ export default function Navigation() {
               {/* Desktop Navigation */}
               <div className="hidden lg:block ml-8 xl:ml-10">
                 <div className="flex items-baseline space-x-6 xl:space-x-8">
-                  <a href="#" className="text-gray-700 hover:text-blue-600 transition-colors duration-300 text-sm font-medium relative group">
+                  <a href="#" className="text-blue-900 hover:text-blue-600 transition-colors duration-300 text-sm font-medium relative group">
                     Cours
                     <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full"></span>
                   </a>
-                  <a href="#" className="text-gray-700 hover:text-blue-600 transition-colors duration-300 text-sm font-medium relative group">
+                  <a href="#" className="text-blue-900 hover:text-blue-600 transition-colors duration-300 text-sm font-medium relative group">
                     À propos
                     <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full"></span>
                   </a>
-                  <a href="#" className="text-gray-700 hover:text-blue-600 transition-colors duration-300 text-sm font-medium relative group">
+                  <a href="#" className="text-blue-900 hover:text-blue-600 transition-colors duration-300 text-sm font-medium relative group">
                     Contact
                     <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full"></span>
                   </a>
@@ -45,7 +45,7 @@ export default function Navigation() {
             {/* Desktop Actions */}
             <div className="hidden md:flex items-center space-x-3 lg:space-x-4">
               <Link href="/login">
-                <Button variant="ghost" className="text-gray-700 hover:text-blue-600 hover:bg-blue-50 text-sm px-3 lg:px-4 transition-all duration-300">
+                <Button variant="ghost" className="text-blue-900 hover:text-blue-600 hover:bg-blue-50/50 text-sm px-3 lg:px-4 transition-all duration-300">
                   Connexion
                 </Button>
               </Link>
@@ -92,26 +92,26 @@ export default function Navigation() {
         <div className={`absolute top-16 right-0 left-0 mx-4 transform transition-all duration-300 ${
           isMobileMenuOpen ? 'translate-y-0 scale-100' : '-translate-y-4 scale-95'
         }`}>
-          <div className="backdrop-blur-md bg-white/90 rounded-2xl border border-white/20 shadow-2xl p-6">
+          <div className="glass-mobile-menu rounded-2xl border border-white/30 shadow-2xl p-6">
             {/* Mobile Navigation Links */}
             <div className="flex flex-col space-y-4 mb-6">
               <a 
                 href="#" 
-                className="text-gray-700 hover:text-blue-600 transition-colors duration-300 text-lg font-medium py-2 px-4 rounded-lg hover:bg-blue-50/80 backdrop-blur-sm"
+                className="text-blue-900 hover:text-blue-600 transition-colors duration-300 text-lg font-medium py-2 px-4 rounded-lg hover:bg-white/30 backdrop-blur-sm"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Cours
               </a>
               <a 
                 href="#" 
-                className="text-gray-700 hover:text-blue-600 transition-colors duration-300 text-lg font-medium py-2 px-4 rounded-lg hover:bg-blue-50/80 backdrop-blur-sm"
+                className="text-blue-900 hover:text-blue-600 transition-colors duration-300 text-lg font-medium py-2 px-4 rounded-lg hover:bg-white/30 backdrop-blur-sm"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 À propos
               </a>
               <a 
                 href="#" 
-                className="text-gray-700 hover:text-blue-600 transition-colors duration-300 text-lg font-medium py-2 px-4 rounded-lg hover:bg-blue-50/80 backdrop-blur-sm"
+                className="text-blue-900 hover:text-blue-600 transition-colors duration-300 text-lg font-medium py-2 px-4 rounded-lg hover:bg-white/30 backdrop-blur-sm"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Contact
@@ -119,11 +119,11 @@ export default function Navigation() {
             </div>
             
             {/* Mobile Actions */}
-            <div className="flex flex-col space-y-3 pt-4 border-t border-gray-200/50">
+            <div className="flex flex-col space-y-3 pt-4 border-t border-white/30">
               <Link href="/login">
                 <Button 
                   variant="ghost" 
-                  className="w-full justify-center text-gray-700 hover:text-blue-600 hover:bg-blue-50/80 py-3 text-lg font-medium transition-all duration-300"
+                  className="w-full justify-center text-blue-900 hover:text-blue-600 hover:bg-white/30 py-3 text-lg font-medium transition-all duration-300"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Connexion

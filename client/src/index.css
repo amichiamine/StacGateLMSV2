@@ -52,21 +52,39 @@
     --duration-300: 300ms;
   }
   
+  /* Forcer texte bleu marine partout - Override important */
+  * {
+    color: #1e3a8a !important;
+  }
+  
+  .text-white, .text-gray-700, .text-gray-600, .text-gray-500, .text-gray-400 {
+    color: #1e3a8a !important;
+  }
+  
   /* Glassmorphism Support */
   .glassmorphism {
-    background: rgba(255, 255, 255, 0.25);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    background: rgba(255, 255, 255, 0.25) !important;
+    backdrop-filter: blur(15px) !important;
+    -webkit-backdrop-filter: blur(15px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37) !important;
   }
   
   .glass-nav {
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
+    background: rgba(255, 255, 255, 0.3) !important;
+    backdrop-filter: blur(15px) !important;
+    -webkit-backdrop-filter: blur(15px) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2) !important;
+  }
+  
+  /* Mobile Menu Glassmorphism */
+  .glass-mobile-menu {
+    background: rgba(255, 255, 255, 0.25) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.4) !important;
   }
 
   .dark {

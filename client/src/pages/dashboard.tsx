@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import Navigation from "@/components/navigation";
 
 export default function Dashboard() {
   const { user, isLoading, isAuthenticated } = useAuth();
@@ -75,24 +76,28 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-      {/* Header responsive avec navigation tactile */}
-      <header className="sticky top-0 z-50 bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg shadow-lg border-b border-gray-200 dark:border-gray-700">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-          <div className="flex items-center justify-between">
+      {/* Navigation Glassmorphism */}
+      <Navigation />
+      
+      {/* Dashboard Content avec padding pour navigation fixe */}
+      <div className="pt-20">
+        {/* Header Dashboard avec glassmorphism */}
+        <header className="glassmorphism mx-4 mt-4 rounded-2xl p-6 shadow-2xl">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center space-x-3 sm:space-x-4">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center">
                 <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-blue-900">
                   Tableau de bord
                 </h1>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 hidden sm:block">
+                <p className="text-xs sm:text-sm text-blue-700 hidden sm:block">
                   Bienvenue, {user?.firstName} {user?.lastName} • {Array.isArray(courses) ? courses.length : 0} cours disponibles
                 </p>
               </div>
             </div>
-            <div className="flex items-center space-x-2 sm:space-x-4">
+            <div className="flex items-center space-x-2 sm:space-x-4 flex-wrap">
               <Button 
                 variant="outline" 
                 size="sm"
@@ -105,39 +110,40 @@ export default function Dashboard() {
                     window.location.href = '/login';
                   }
                 }}
-                className="flex items-center gap-2 hover:bg-red-50 hover:border-red-300"
+                className="flex items-center gap-2 hover:bg-red-50/70 hover:border-red-300 text-blue-900 backdrop-blur-sm"
               >
                 <Settings className="h-4 w-4" />
-                Refresh Session
+                <span className="hidden sm:inline">Refresh Session</span>
               </Button>
               <Button 
                 variant="outline" 
                 size="sm"
                 onClick={() => window.location.href = '/'}
-                className="flex items-center gap-2 hover:bg-blue-50 hover:border-blue-300"
+                className="flex items-center gap-2 hover:bg-blue-50/70 hover:border-blue-300 text-blue-900 backdrop-blur-sm"
               >
                 <BookOpen className="h-4 w-4" />
-                Accueil
+                <span className="hidden sm:inline">Accueil</span>
               </Button>
               {(user?.role === 'super_admin' || user?.role === 'admin' || user?.role === 'manager') && (
                 <Button 
                   variant="outline" 
                   size="sm"
                   onClick={() => window.location.href = user?.role === 'super_admin' ? '/super-admin' : '/admin'}
-                  className="flex items-center gap-2 hover:bg-blue-50 hover:border-blue-300"
+                  className="flex items-center gap-2 hover:bg-blue-50/70 hover:border-blue-300 text-blue-900 backdrop-blur-sm"
                 >
                   <Settings className="h-4 w-4" />
-                  {user?.role === 'super_admin' ? 'Super Administration' : 'Administration'}
+                  <span className="hidden lg:inline">{user?.role === 'super_admin' ? 'Super Administration' : 'Administration'}</span>
+                  <span className="lg:hidden">Admin</span>
                 </Button>
               )}
               <Button 
                 variant="outline" 
                 size="sm"
                 onClick={() => window.location.href = '/courses'}
-                className="flex items-center gap-2 hover:bg-green-50 hover:border-green-300"
+                className="flex items-center gap-2 hover:bg-green-50/70 hover:border-green-300 text-blue-900 backdrop-blur-sm"
               >
                 <BookOpen className="h-4 w-4" />
-                Cours
+                <span className="hidden sm:inline">Cours</span>
               </Button>
               <Button 
                 variant="outline" 
@@ -183,8 +189,8 @@ export default function Dashboard() {
               </Button>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
+      </div>
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
