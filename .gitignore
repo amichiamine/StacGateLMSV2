@@ -1,0 +1,118 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Production builds
+dist/
+build/
+*.tsbuildinfo
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# Temporary folders
+tmp/
+temp/
+.tmp/
+
+# IDE files
+.vscode/settings.json
+.vscode/launch.json
+.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Package manager locks (keep package-lock.json but exclude others)
+yarn.lock
+pnpm-lock.yaml
+
+# Backup files
+backup-*/
+*.backup
+*.bak
+
+# Installation logs
+installation.log
+install.log
+
+# Generated deployment packages (large files)
+deployment-packages/
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Backup and archive directories
+backup-*/
+archives/
+old-*/
+
+# Development files
+cookies.txt
+session-*
+*.tmp
+
+# drizzle
+migrations/
+drizzle/
+
+# Replit specific
+.replit
+replit.nix
+
+# Editor specific
+*.sublime-project
+*.sublime-workspace
+
+# Runtime files
+*.orig
+.cache/
+.parcel-cache/
+
+# Test files
+coverage/
+.nyc_output/
+
+# Documentation builds
+docs/build/
