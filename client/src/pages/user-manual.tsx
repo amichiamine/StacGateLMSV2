@@ -278,7 +278,7 @@ export default function UserManualPage() {
   });
 
   // Use API data if available, otherwise fall back to static content
-  const userRole = (user as any)?.role || "apprenant";
+  const userRole = user?.role || "apprenant";
   const displayContent = helpContents && helpContents.length > 0 
     ? helpContents 
     : manualContent.filter(section => section.roles.includes(userRole)).map(section => ({
@@ -316,7 +316,7 @@ export default function UserManualPage() {
             <h1 className="text-xl font-semibold">Manuel d'utilisation</h1>
           </div>
           <p className="text-sm text-muted-foreground">
-            Guide complet pour {(user as any)?.role || "utilisateur"}
+            Guide complet pour {user?.role || "utilisateur"}
           </p>
           
           {/* Search Input */}

@@ -108,7 +108,7 @@ export function ColorPicker({
     <div className="space-y-4">
       <Label>{label}</Label>
       
-      <Tabs value={colorType} onValueChange={(value) => handleColorTypeChange(value as any)}>
+      <Tabs value={colorType} onValueChange={(value) => handleColorTypeChange(value as 'solid' | 'gradient')}>
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="solid" className="flex items-center space-x-1">
             <Palette className="w-3 h-3" />

@@ -383,10 +383,10 @@ export default function AdminPage() {
 
   // Filter data by selected establishment
   const filteredUsers = selectedEstablishment 
-    ? (users as any[]).filter((user: any) => user.establishmentId === selectedEstablishment)
-    : (users as any[]);
+    ? (users || []).filter((user) => user.establishmentId === selectedEstablishment)
+    : (users || []);
 
-  const selectedEstablishmentData = (establishments as any[]).find((est: any) => est.id === selectedEstablishment);
+  const selectedEstablishmentData = (establishments || []).find((est) => est.id === selectedEstablishment);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
@@ -451,7 +451,7 @@ export default function AdminPage() {
                 <SelectValue placeholder="Sélectionner un établissement" />
               </SelectTrigger>
               <SelectContent>
-                {(establishments as any[]).map((establishment: any) => (
+                {(establishments || []).map((establishment) => (
                   <SelectItem key={establishment.id} value={establishment.id}>
                     {establishment.name}
                   </SelectItem>
@@ -540,7 +540,7 @@ export default function AdminPage() {
               </CardHeader>
               <CardContent>
                 <div className="grid gap-4">
-                  {(establishments as any[]).map((establishment: any) => (
+                  {(establishments || []).map((establishment) => (
                     <div key={establishment.id} className="flex items-center justify-between p-4 border rounded-lg">
                       <div>
                         <h3 className="font-medium">{establishment.name}</h3>
@@ -667,7 +667,7 @@ export default function AdminPage() {
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
                       <div className="text-sm text-gray-600">
-                        {(courses as any[]).length} cours trouvé(s)
+                        {Array.isArray(courses) ? courses.length : 0} cours trouvé(s)
                       </div>
                       <Button 
                         onClick={() => window.location.href = '/courses'}
@@ -679,7 +679,7 @@ export default function AdminPage() {
                     </div>
                     
                     <div className="grid gap-4">
-                      {(courses as any[]).map((course: any) => (
+                      {Array.isArray(courses) ? courses.map((course: any) => (
                         <div key={course.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
                           <div className="flex-1">
                             <h4 className="font-semibold text-lg">{course.title}</h4>
@@ -725,10 +725,10 @@ export default function AdminPage() {
                             </Button>
                           </div>
                         </div>
-                      ))}
+                      )) : []}
                     </div>
                     
-                    {(courses as any[]).length === 0 && (
+                    {(!Array.isArray(courses) || courses.length === 0) && (
                       <div className="text-center py-12">
                         <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                         <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun cours trouvé</h3>
@@ -873,7 +873,7 @@ export default function AdminPage() {
                                 <SelectValue placeholder="Choisir un établissement" />
                               </SelectTrigger>
                               <SelectContent>
-                                {(establishments as any[]).map((establishment: any) => (
+                                {(establishments || []).map((establishment) => (
                                   <SelectItem key={establishment.id} value={establishment.id}>
                                     {establishment.name}
                                   </SelectItem>

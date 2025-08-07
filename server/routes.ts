@@ -31,23 +31,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mount API routes
   app.use('/api', apiRoutes);
 
-  // WebSocket server setup
+  // WebSocket server setup (on specific path to avoid Vite conflicts)
   const server = createServer(app);
-  const wss = new WebSocketServer({ server });
+  const wss = new WebSocketServer({ 
+    server,
+    path: '/ws/collaboration' // Specific path for our WebSocket
+  });
 
   wss.on('connection', (ws: WebSocket) => {
-    console.log('New WebSocket connection');
+    console.log('New WebSocket connection on /ws/collaboration');
     
     ws.on('message', (message: string) => {
       try {
         const data = JSON.parse(message.toString());
-        console.log('Received:', data);
+        console.log('Received collaboration data:', data);
         
-        // Echo back for now
-        ws.send(JSON.stringify({
-          type: 'echo',
-          data: data
-        }));
+        // Broadcast to all connected clients
+        wss.clients.forEach(client => {
+          if (client !== ws && client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({
+              type: 'broadcast',
+              data: data,
+              timestamp: new Date().toISOString()
+            }));
+          }
+        });
       } catch (error) {
         console.error('WebSocket message error:', error);
       }
@@ -56,6 +64,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     ws.on('close', () => {
       console.log('WebSocket connection closed');
     });
+
+    // Send welcome message
+    ws.send(JSON.stringify({
+      type: 'connected',
+      message: 'Connected to StacGate LMS collaboration server',
+      timestamp: new Date().toISOString()
+    }));
   });
 
   return server;

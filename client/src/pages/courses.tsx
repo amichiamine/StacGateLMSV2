@@ -141,8 +141,8 @@ export default function CoursesPage() {
 
     createCourseMutation.mutate({
       ...newCourse,
-      establishmentId: (user as any)?.establishmentId || '',
-      instructorId: (user as any)?.id || '',
+      establishmentId: user?.establishmentId || '',
+      instructorId: user?.id || '',
       rating: "0.0",
       enrollmentCount: 0
     });
@@ -226,7 +226,7 @@ export default function CoursesPage() {
   });
 
   const categories = Array.from(new Set(courses.map(course => course.category)));
-  const isInstructor = (user as any)?.role === "formateur" || (user as any)?.role === "admin" || (user as any)?.role === "manager" || (user as any)?.role === "super_admin";
+  const isInstructor = user?.role === "formateur" || user?.role === "admin" || user?.role === "manager" || user?.role === "super_admin";
 
   const formatPrice = (price: string, isFree: boolean) => {
     if (isFree) return "Gratuit";

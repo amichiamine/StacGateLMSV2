@@ -1550,9 +1550,9 @@ export class DatabaseStorage implements IStorage {
       ))
       .returning();
 
-    // Check if certificate should be generated
+    // Check if certificate should be generated (simplified check)
     const course = await this.getCourse(courseId);
-    if (course?.certificateTemplate) {
+    if (course) {
       await this.generateCourseCertificate(userId, courseId);
     }
 
@@ -1570,21 +1570,15 @@ export class DatabaseStorage implements IStorage {
     const [certificate] = await db
       .insert(certificates)
       .values({
-        userId,
-        courseId,
-        certificateType: "course_completion",
-        recipientName: `${user.firstName} ${user.lastName}`,
-        courseTitle: course.title,
-        issuedAt: new Date(),
-        isValid: true,
-        certificateData: {
-          courseTitle: course.title,
-          completionDate: new Date().toISOString(),
-          recipientName: `${user.firstName} ${user.lastName}`,
-          establishmentName: user.establishmentId // TODO: Get actual establishment name
-        },
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        userId: userId,
+        courseId: courseId,
+        establishmentId: user.establishmentId,
+        certificateNumber: `CERT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        title: `Certificate of Completion - ${course.title}`,
+        description: `Certificate for completing the course: ${course.title}`,
+        verificationCode: Math.random().toString(36).substr(2, 12).toUpperCase(),
+        issuedBy: userId,
+        isValid: true
       })
       .returning();
 
@@ -1610,13 +1604,12 @@ export class DatabaseStorage implements IStorage {
     const [exportJob] = await db
       .insert(exportJobs)
       .values({
-        establishmentId,
-        jobType: exportType,
+        userId: createdBy,
+        establishmentId: establishmentId,
+        type: exportType,
         status: "pending",
-        filters: JSON.stringify(filters),
-        createdBy,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        filename: `export-${Date.now()}.${exportType}`,
+        config: filters
       })
       .returning();
     return exportJob;
@@ -1634,7 +1627,7 @@ export class DatabaseStorage implements IStorage {
         }
       })
       .from(exportJobs)
-      .leftJoin(users, eq(exportJobs.createdBy, users.id))
+      .leftJoin(users, eq(exportJobs.userId, users.id))
       .where(eq(exportJobs.establishmentId, establishmentId))
       .orderBy(desc(exportJobs.createdAt))
       .limit(limit);
@@ -1773,15 +1766,11 @@ export class DatabaseStorage implements IStorage {
     const [notification] = await db
       .insert(notifications)
       .values({
-        establishmentId,
         userId,
-        type: 'system_activity',
+        establishmentId,
+        type: 'system_update',
         title: `Activity: ${action}`,
-        message: JSON.stringify(details),
-        priority: 'low',
-        isRead: false,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        message: JSON.stringify(details)
       })
       .returning();
     return notification;
@@ -1927,24 +1916,9 @@ export class DatabaseStorage implements IStorage {
       .orderBy(page_components.componentType, page_components.componentName);
   }
 
-  // System activity logging
+  // System activity logging (merged with logSystemActivity)
   async logActivity(establishmentId: string, userId: string, action: string, details: any): Promise<any> {
-    const [notification] = await db
-      .insert(notifications)
-      .values({
-        establishmentId,
-        userId,
-        type: 'system_activity',
-        title: `Action système: ${action}`,
-        message: JSON.stringify(details),
-        priority: 'low',
-        isRead: false,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      })
-      .returning();
-    
-    return notification;
+    return await this.logSystemActivity(establishmentId, userId, action, details);
   }
 
   // Batch operations for course management
@@ -1965,16 +1939,18 @@ export class DatabaseStorage implements IStorage {
       .returning();
 
     // Create notifications for enrolled users
-    const notificationData = userIds.map(userId => ({
-      establishmentId: '',  // Will be set by the calling function
-      userId,
-      type: 'course_enrollment',
-      title: 'Nouvelle inscription',
-      content: `Vous avez été inscrit au cours ${courseId}`,
-      isRead: false,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    }));
+    const course = await this.getCourse(courseId);
+    if (course && course.establishmentId) {
+      const notificationData = userIds.map(userId => ({
+        userId,
+        establishmentId: course.establishmentId,
+        type: 'course_enrollment' as const,
+        title: 'Nouvelle inscription',
+        message: `Vous avez été inscrit au cours: ${course.title}`
+      }));
+      
+      await this.createBulkNotifications(notificationData);
+    }
 
     return createdEnrollments;
   }

@@ -111,7 +111,7 @@ export default function SuperAdminPage() {
                   Administration Plateforme
                 </h1>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Bienvenue, {(user as any)?.firstName || ''} {(user as any)?.lastName || ''} (Super Admin)
+                  Bienvenue, {user?.firstName || ''} {user?.lastName || ''} (Super Admin)
                 </p>
               </div>
             </div>

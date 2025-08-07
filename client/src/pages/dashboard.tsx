@@ -31,11 +31,11 @@ export default function Dashboard() {
   const { data: courses = [] } = useQuery({
     queryKey: ['/api/courses'],
     enabled: isAuthenticated
-  }) as { data: any[] };
+  });
 
-  const { data: users = [] } = useQuery<any[]>({
+  const { data: users = [] } = useQuery({
     queryKey: ['/api/users'],
-    enabled: isAuthenticated && ((user as any)?.role === 'admin' || (user as any)?.role === 'super_admin' || (user as any)?.role === 'manager')
+    enabled: isAuthenticated && (user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'manager')
   });
 
   // Redirect to login if not authenticated
@@ -88,7 +88,7 @@ export default function Dashboard() {
                   Tableau de bord
                 </h1>
                 <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 hidden sm:block">
-                  Bienvenue, {(user as any)?.firstName} {(user as any)?.lastName} • {(courses as any).length || 0} cours disponibles
+                  Bienvenue, {user?.firstName} {user?.lastName} • {courses?.length || 0} cours disponibles
                 </p>
               </div>
             </div>
@@ -119,15 +119,15 @@ export default function Dashboard() {
                 <BookOpen className="h-4 w-4" />
                 Accueil
               </Button>
-              {((user as any)?.role === 'super_admin' || (user as any)?.role === 'admin' || (user as any)?.role === 'manager') && (
+              {(user?.role === 'super_admin' || user?.role === 'admin' || user?.role === 'manager') && (
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => window.location.href = (user as any)?.role === 'super_admin' ? '/super-admin' : '/admin'}
+                  onClick={() => window.location.href = user?.role === 'super_admin' ? '/super-admin' : '/admin'}
                   className="flex items-center gap-2 hover:bg-blue-50 hover:border-blue-300"
                 >
                   <Settings className="h-4 w-4" />
-                  {(user as any)?.role === 'super_admin' ? 'Super Administration' : 'Administration'}
+                  {user?.role === 'super_admin' ? 'Super Administration' : 'Administration'}
                 </Button>
               )}
               <Button 
@@ -150,19 +150,19 @@ export default function Dashboard() {
               </Button>
               <div className="flex items-center space-x-3">
                 <Avatar>
-                  <AvatarImage src={(user as any)?.profileImageUrl || undefined} />
+                  <AvatarImage src={user?.profileImageUrl || undefined} />
                   <AvatarFallback>
-                    {(user as any)?.firstName?.charAt(0) || (user as any)?.email?.charAt(0) || 'U'}
+                    {user?.firstName?.charAt(0) || user?.email?.charAt(0) || 'U'}
                   </AvatarFallback>
                 </Avatar>
                 <div className="text-right hidden sm:block">
                   <p className="text-sm font-medium text-gray-900 dark:text-white">
-                    {(user as any)?.firstName && (user as any)?.lastName 
-                      ? `${(user as any).firstName} ${(user as any).lastName}` 
-                      : (user as any)?.email}
+                    {user?.firstName && user?.lastName 
+                      ? `${user.firstName} ${user.lastName}` 
+                      : user?.email}
                   </p>
                   <Badge variant="secondary" className="text-xs">
-                    {(user as any)?.role || 'Apprenant'}
+                    {user?.role || 'Apprenant'}
                   </Badge>
                 </div>
               </div>
@@ -191,7 +191,7 @@ export default function Dashboard() {
         {/* Welcome Section */}
         <div className="mb-6 sm:mb-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Bienvenue, {(user as any)?.firstName || (user as any)?.email?.split('@')[0] || 'Utilisateur'} !
+            Bienvenue, {user?.firstName || user?.email?.split('@')[0] || 'Utilisateur'} !
           </h2>
           <p className="text-gray-600 dark:text-gray-300">
             Voici un aperçu de votre activité d'apprentissage dans votre établissement.
@@ -209,7 +209,7 @@ export default function Dashboard() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{(courses as any).length || 0}</div>
+              <div className="text-2xl font-bold text-blue-600">{courses?.length || 0}</div>
               <p className="text-xs text-muted-foreground">
                 Formations actives
               </p>
@@ -225,7 +225,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
-                {(courses as any).reduce ? (courses as any).reduce((total: number, course: any) => total + (course.duration || 0), 0) : 0}h
+                {Array.isArray(courses) ? courses.reduce((total: number, course: any) => total + (course.duration || 0), 0) : 0}h
               </div>
               <p className="text-xs text-muted-foreground">
                 Contenu disponible
@@ -242,7 +242,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-purple-600">
-                {(courses as any).map ? new Set((courses as any).map((course: any) => course.category)).size : 0}
+                {Array.isArray(courses) ? new Set(courses.map((course: any) => course.category)).size : 0}
               </div>
               <p className="text-xs text-muted-foreground">
                 Domaines d'expertise
@@ -259,8 +259,8 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-orange-600">
-                {(courses as any).length > 0 
-                  ? ((courses as any).reduce((total: number, course: any) => total + parseFloat(course.rating || '0'), 0) / (courses as any).length).toFixed(1)
+                {Array.isArray(courses) && courses.length > 0 
+                  ? (courses.reduce((total: number, course: any) => total + parseFloat(course.rating || '0'), 0) / courses.length).toFixed(1)
                   : '0.0'}
               </div>
               <p className="text-xs text-muted-foreground">
@@ -285,7 +285,7 @@ export default function Dashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {((courses as any).slice ? (courses as any).slice(0, 3) : []).map((course: any, index: number) => (
+              {(Array.isArray(courses) ? courses.slice(0, 3) : []).map((course: any, index: number) => (
                 <div key={course.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
                      onClick={() => window.location.href = '/courses'}>
                   <div className="flex-1">
@@ -311,7 +311,7 @@ export default function Dashboard() {
                   </div>
                 </div>
               ))}
-              {(courses as any[]).length === 0 && (
+              {(!Array.isArray(courses) || courses.length === 0) && (
                 <div className="text-center py-8 text-gray-500">
                   <BookOpen className="w-8 h-8 mx-auto mb-2 text-gray-400" />
                   <p>Aucun cours disponible</p>
@@ -440,10 +440,10 @@ export default function Dashboard() {
               
               {/* Boutons d'administration selon les rôles */}
               {(() => {
-                console.log('DEBUG - User role:', (user as any)?.role, 'Expected: super_admin', 'Match:', (user as any)?.role === 'super_admin');
+                console.log('DEBUG - User role:', user?.role, 'Expected: super_admin', 'Match:', user?.role === 'super_admin');
                 return null;
               })()}
-              {(user as any)?.role === 'super_admin' && (
+              {user?.role === 'super_admin' && (
                 <Button 
                   variant="outline" 
                   className="h-20 flex-col flex-1 min-w-[120px] border-red-200 hover:bg-red-50"
@@ -458,7 +458,7 @@ export default function Dashboard() {
                 </Button>
               )}
               
-              {((user as any)?.role === 'admin' || (user as any)?.role === 'manager') && (
+              {(user?.role === 'admin' || user?.role === 'manager') && (
                 <>
                   <Button 
                     variant="outline" 
@@ -489,7 +489,7 @@ export default function Dashboard() {
               )}
               
               {/* Bouton paramètres pour tous les autres cas */}
-              {!['admin', 'super_admin', 'manager'].includes((user as any)?.role || '') && (
+              {!['admin', 'super_admin', 'manager'].includes(user?.role || '') && (
                 <Button 
                   variant="outline" 
                   className="h-20 flex-col flex-1 min-w-[120px]"
