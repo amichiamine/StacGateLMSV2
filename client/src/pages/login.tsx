@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { GraduationCap, User, Mail, Lock } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
 export default function Login() {
   const [loginEmail, setLoginEmail] = useState("");
@@ -14,8 +16,15 @@ export default function Login() {
   const [registerPassword, setRegisterPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [selectedEstablishment, setSelectedEstablishment] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+
+  // Fetch establishments for registration
+  const { data: establishments = [] } = useQuery<any[]>({
+    queryKey: ['/api/establishments'],
+    retry: false,
+  });
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,6 +62,16 @@ export default function Login() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!selectedEstablishment) {
+      toast({
+        title: "Établissement requis",
+        description: "Veuillez sélectionner un établissement pour vous inscrire.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsLoading(true);
 
     try {
@@ -65,7 +84,9 @@ export default function Login() {
           email: registerEmail, 
           password: registerPassword,
           firstName,
-          lastName
+          lastName,
+          establishmentId: selectedEstablishment,
+          username: registerEmail // Use email as username for simplicity
         }),
       });
 
@@ -231,6 +252,22 @@ export default function Login() {
                         required
                       />
                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="establishment">Établissement</Label>
+                    <Select value={selectedEstablishment} onValueChange={setSelectedEstablishment}>
+                      <SelectTrigger data-testid="select-establishment">
+                        <SelectValue placeholder="Sélectionnez votre établissement" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {establishments.map((establishment: any) => (
+                          <SelectItem key={establishment.id} value={establishment.id}>
+                            {establishment.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-2">

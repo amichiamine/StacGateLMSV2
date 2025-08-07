@@ -69,11 +69,12 @@ router.post('/login', async (req: any, res) => {
     // Create session
     req.session.userId = user.id;
     
-    // Update last login - commented out as updateUser method may not exist
-    // await storage.updateUser(user.id, {
-    //   lastLoginAt: new Date(),
-    //   updatedAt: new Date()
-    // });
+    // Update last login
+    try {
+      await storage.updateUserLastLogin(user.id);
+    } catch (error) {
+      console.log("Could not update last login:", error);
+    }
 
     // Remove password from response
     const { password: _, ...userWithoutPassword } = user;
@@ -97,7 +98,7 @@ router.post('/register', async (req: any, res) => {
     // Check if user already exists - need to check across establishments
     // For registration, we should require establishmentId in the request
     if (!userData.establishmentId) {
-      return res.status(400).json({ message: "Establishment ID requis" });
+      return res.status(400).json({ message: "Établissement requis pour l'inscription" });
     }
     
     const existingUser = await storage.getUserByEmail(userData.email, userData.establishmentId);

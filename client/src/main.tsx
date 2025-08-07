@@ -4,13 +4,16 @@ import "./index.css";
 
 // Capture global unhandled rejections AVANT le rendu
 window.addEventListener('unhandledrejection', (event) => {
-  console.warn('Promise rejection globale interceptée:', event.reason);
-  event.preventDefault();
+  console.error('Promise rejection globale:', event.reason);
+  // Only prevent for network errors, not for actual bugs
+  if (event.reason instanceof Error && event.reason.message.includes('fetch')) {
+    event.preventDefault();
+  }
 });
 
 window.addEventListener('error', (event) => {
-  console.warn('Erreur globale interceptée:', event.error);
-  event.preventDefault();
+  console.error('Erreur globale:', event.error);
+  // Don't prevent default for actual errors
 });
 
 createRoot(document.getElementById("root")!).render(<App />);

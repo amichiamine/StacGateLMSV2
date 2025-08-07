@@ -1220,9 +1220,9 @@ export class DatabaseStorage implements IStorage {
 
     // Apply sorting
     if (filters.sortBy === 'title') {
-      queryBuilder = queryBuilder.orderBy(filters.sortOrder === 'asc' ? asc(courses.title) : desc(courses.title));
+      queryBuilder = queryBuilder.orderBy(filters.sortOrder === 'asc' ? asc(courses.title) : desc(courses.title)) as any;
     } else if (filters.sortBy === 'createdAt') {
-      queryBuilder = queryBuilder.orderBy(filters.sortOrder === 'asc' ? asc(courses.createdAt) : desc(courses.createdAt));
+      queryBuilder = queryBuilder.orderBy(filters.sortOrder === 'asc' ? asc(courses.createdAt) : desc(courses.createdAt)) as any;
     }
 
     // Apply pagination
@@ -1726,7 +1726,7 @@ export class DatabaseStorage implements IStorage {
       .from(notifications)
       .where(and(
         eq(notifications.establishmentId, establishmentId),
-        eq(notifications.type, type)
+        eq(notifications.type, type as any)
       ))
       .orderBy(desc(notifications.createdAt))
       .limit(limit);
@@ -1790,12 +1790,12 @@ export class DatabaseStorage implements IStorage {
       })
       .from(rolePermissions)
       .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-      .where(eq(rolePermissions.role, role));
+      .where(eq(rolePermissions.role, role as any));
   }
 
   async assignRolePermissions(role: string, permissionIds: string[]): Promise<void> {
     // Remove existing permissions for the role
-    await db.delete(rolePermissions).where(eq(rolePermissions.role, role));
+    await db.delete(rolePermissions).where(eq(rolePermissions.role, role as any));
 
     // Add new permissions
     const rolePermissionData = permissionIds.map(permissionId => ({
@@ -1916,7 +1916,7 @@ export class DatabaseStorage implements IStorage {
       dateFilter = and(
         eq(users.establishmentId, establishmentId),
         sql`${users.createdAt} BETWEEN ${dateRange.from} AND ${dateRange.to}`
-      );
+      ) as any;
     }
 
     const [userStats] = await db
@@ -2220,7 +2220,7 @@ export class DatabaseStorage implements IStorage {
   async createMessage(data: InsertStudyGroupMessage): Promise<StudyGroupMessageWithDetails> {
     const [message] = await db
       .insert(studyGroupMessages)
-      .values(data)
+      .values([data])
       .returning();
 
     // Get message with sender details
@@ -2248,7 +2248,7 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(users, eq(studyGroupMessages.senderId, users.id))
       .where(eq(studyGroupMessages.id, message.id));
 
-    return messageWithSender;
+    return messageWithSender as StudyGroupMessageWithDetails;
   }
 
   async getStudyGroupMessages(groupId: string, limit: number = 50): Promise<StudyGroupMessageWithDetails[]> {
