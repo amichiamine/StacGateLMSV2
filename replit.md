@@ -1,7 +1,9 @@
-# StacGateLMS - Plateforme E-learning
+# IntraSphere - Plateforme E-learning Moderne
 
 ## Description du Projet
-StacGateLMS est une plateforme d'apprentissage moderne et flexible (LMS) qui offre une expérience d'apprentissage complète et adaptative pour plusieurs établissements avec des capacités administratives robustes.
+IntraSphere est une plateforme d'apprentissage moderne et flexible (LMS) qui offre une expérience d'apprentissage complète et adaptative pour plusieurs établissements avec des capacités administratives robustes. 
+
+**Nouvelle architecture organisée par domaines métier pour une meilleure maintenabilité et évolutivité.**
 
 ## Technologies Clés
 - **Frontend**: React TypeScript avec design responsive avancé
@@ -13,35 +15,43 @@ StacGateLMS est une plateforme d'apprentissage moderne et flexible (LMS) qui off
 
 ## Architecture du Projet
 
-### Structure Optimisée (Avec couche services et déploiement)
+### Structure Moderne par Domaines Métier
 ```
-StacGateLMS/
-├── client/                    # Frontend React TypeScript
-│   ├── src/components/       # Composants UI (shadcn/ui)
-│   ├── src/pages/           # Pages de l'application
-│   ├── src/hooks/           # Hooks React personnalisés
-│   └── src/lib/             # Utilitaires et configurations
-├── server/                   # Backend Express TypeScript
-│   ├── middleware/          # Authentification et autorisation
-│   ├── services/            # Couche de logique métier
-│   │   ├── AuthService.ts   # Service d'authentification
-│   │   ├── CourseService.ts # Service de gestion des cours
-│   │   ├── EstablishmentService.ts # Service établissements
-│   │   └── NotificationService.ts  # Service notifications
-│   ├── routes.ts            # Définitions des endpoints API
-│   ├── storage.ts           # Couche d'accès aux données
-│   └── database-manager.ts  # Gestion base de données multi-établissements
-├── shared/                   # Schémas et types partagés
+IntraSphere/
+├── frontend/                 # Interface utilisateur React
+│   ├── src/
+│   │   ├── components/      # Composants React
+│   │   │   ├── ui/          # Composants shadcn/ui
+│   │   │   ├── layout/      # Composants de mise en page  
+│   │   │   └── dashboard/   # Composants métier
+│   │   ├── features/        # Pages organisées par domaine
+│   │   │   ├── auth/        # Authentification
+│   │   │   ├── admin/       # Administration
+│   │   │   ├── content/     # Gestion contenu
+│   │   │   └── training/    # Formation et cours
+│   │   └── core/            # Hooks et utilitaires
+│   └── public/              # Assets statiques
+├── backend/                  # API Node.js/Express  
+│   ├── src/
+│   │   ├── routes/          # Endpoints API
+│   │   ├── services/        # Logique métier
+│   │   │   ├── AuthService.ts   # Service d'authentification
+│   │   │   ├── CourseService.ts # Service de gestion des cours
+│   │   │   ├── EstablishmentService.ts # Service établissements
+│   │   │   └── NotificationService.ts  # Service notifications
+│   │   ├── middleware/      # Auth/Sécurité/Logs
+│   │   └── data/            # Storage et modèles
+│   └── migrations/          # Migrations base de données
+├── shared/                   # Types TypeScript partagés
 │   └── schema.ts            # Schémas Drizzle ORM et validations Zod
-├── deployment/               # Configurations de déploiement
-│   ├── docker/              # Configuration Docker
-│   ├── cpanel/              # Configuration cPanel/hébergement web
-│   └── vscode/              # Configuration VS Code
-├── node_modules/            # Dépendances (auto-générées)
-├── package.json             # Configuration du projet
-├── vite.config.ts           # Configuration Vite
-├── tailwind.config.ts       # Configuration Tailwind
-└── drizzle.config.ts        # Configuration Drizzle ORM
+├── config/                   # Configuration globale
+│   ├── drizzle.config.ts    # Configuration base de données
+│   ├── tailwind.config.ts   # Styles et thèmes  
+│   └── vite.config.ts       # Build et développement
+└── deployment/               # Configurations de déploiement
+    ├── docker/              # Configuration Docker
+    ├── cpanel/              # Configuration cPanel/hébergement web
+    └── vscode/              # Configuration VS Code
 ```
 
 ## Fonctionnalités Principales
@@ -66,42 +76,46 @@ StacGateLMS/
 
 ## Changements Récents
 
-### 07/08/2025 - Réorganisation Complète et Analyse Approfondie
+### 07/08/2025 - Migration vers Architecture IntraSphere
 **Actions effectuées :**
 
-#### 1. Réorganisation Architecturale ✓
-- ✓ Création de la couche de services métier (server/services/)
-- ✓ AuthService.ts, CourseService.ts, EstablishmentService.ts, NotificationService.ts  
-- ✓ Configuration pour déploiements multiples (deployment/)
-- ✓ Docker, cPanel, VS Code configurations
-- ✓ Structure optimisée pour développement et production
+#### 1. Réorganisation Architecturale Majeure ✓
+- ✓ Migration complète vers structure par domaines métier
+- ✓ Frontend séparé (/frontend/) avec organisation par features
+- ✓ Backend isolé (/backend/) avec architecture en couches
+- ✓ Configuration centralisée (/config/)
+- ✓ Types partagés optimisés (/shared/)
 
-#### 2. Correction des Erreurs LSP ⚡
-- ✓ Erreurs réduites de 133 à 69 (-48% d'amélioration)
-- ✓ shared/schema.ts complètement corrigé (0 erreurs)
-- ✓ Imports nanoid et types Assessment/AssessmentAttempt corrigés
-- ✓ Services nouvellement créés avec corrections types
-- ⚠️ storage.ts reste à finaliser (69 erreurs restantes sur tables permissions)
+#### 2. Structure par Domaines ✓
+- ✓ **Features Auth** - Authentification et sessions
+- ✓ **Features Admin** - Administration et supervision  
+- ✓ **Features Content** - Gestion contenu et WYSIWYG
+- ✓ **Features Training** - Cours, évaluations, groupes d'étude
+- ✓ **Composants hiérarchisés** - ui/ → layout/ → dashboard/
 
-#### 3. Inventaires Exhaustifs Créés ✓
-- ✓ **inv-front.md** - 502 lignes d'analyse frontend complète
-  - 47 composants UI Shadcn, 6 composants métier, 16 pages
-  - 4 hooks personnalisés, 13 routes principales
-- ✓ **inv-back.md** - 625 lignes d'analyse backend complète  
-  - 4 services métier, 98+ méthodes storage, 57+ endpoints API
-  - 23 tables de base, architecture multi-tenant
+#### 3. Services et Couches ✓
+- ✓ Couche de services métier maintenue (AuthService, CourseService, EstablishmentService, NotificationService)
+- ✓ Routes organisées par domaine métier
+- ✓ Middleware centralisé (Auth/Sécurité/Logs)
+- ✓ Couche data isolée (Storage/Models)
 
-#### 4. Documentation Mise à Jour ✓
-- ✓ replit.md actualisé avec nouvelle architecture
-- ✓ Structure projet documentée avec services et déploiement
-- ✓ Analyse de compatibilité frontend ↔ backend effectuée
+#### 4. Configuration Moderne ✓
+- ✓ **Vite séparé** pour le frontend
+- ✓ **Package.json dédié** par environnement
+- ✓ **Tailwind configuré** pour le frontend
+- ✓ **TypeScript optimisé** avec paths aliases
+
+#### 5. Documentation et Inventaires ✓
+- ✓ **README.md nouveau** - Guide architecture moderne
+- ✓ **inv-front.md & inv-back.md** - Inventaires complets maintenus
+- ✓ **Configurations déploiement** - Docker, cPanel, VS Code, Replit
 
 **Résultat :**
-- Architecture considérablement renforcée avec couche services
-- Documentation exhaustive de tous les composants/fonctionnalités
-- Configurations de déploiement multi-environnement
-- Base solide pour développements futurs
-- Erreurs LSP réduites significativement
+- **Architecture nouvelle génération** organisée par domaines métier
+- **Séparation claire** frontend/backend pour le travail en équipe
+- **Scalabilité améliorée** - Ajout de features sans collision
+- **Maintenance facilitée** - Localisation rapide du code
+- **Déploiement flexible** - Frontend statique + API séparée possible
 
 ## Configuration de Développement
 
