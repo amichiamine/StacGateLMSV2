@@ -756,22 +756,7 @@ export type Assessment = typeof assessments.$inferSelect;
 export type AssessmentAttempt = typeof assessment_attempts.$inferSelect;
 export type Certificate = typeof certificates.$inferSelect;
 
-// Insert schemas for assessments
-export const insertAssessmentSchema = createInsertSchema(assessments).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
 
-export const insertAssessmentAttemptSchema = createInsertSchema(assessment_attempts).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-// Insert types
-export type InsertAssessment = z.infer<typeof insertAssessmentSchema>;
-export type InsertAssessmentAttempt = z.infer<typeof insertAssessmentAttemptSchema>;
 
 // Types pour les permissions
 export type Permission = typeof permissions.$inferSelect;
