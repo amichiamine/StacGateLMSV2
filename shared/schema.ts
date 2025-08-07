@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import { pgTable, text, varchar, integer, decimal, timestamp, boolean, jsonb, pgEnum, index } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
+import { nanoid } from "nanoid";
 
 // Enums pour les rôles et statuts
 // Session storage table for Replit Auth
@@ -699,8 +700,6 @@ export type InsertCourseModule = z.infer<typeof insertCourseModuleSchema>;
 export type InsertEducationalPlugin = z.infer<typeof insertEducationalPluginSchema>;
 export type InsertUserModuleProgress = z.infer<typeof insertUserModuleProgressSchema>;
 export type InsertAssessmentAttempt = z.infer<typeof insertAssessmentAttemptSchema>;
-export type Assessment = typeof assessments.$inferSelect;
-export type AssessmentAttempt = typeof assessment_attempts.$inferSelect;
 export type InsertCertificate = z.infer<typeof insertCertificateSchema>;
 
 // Types de sélection

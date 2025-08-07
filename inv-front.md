@@ -1,274 +1,257 @@
 # INVENTAIRE FRONTEND - StacGateLMS
+*Généré le 07/08/2025 - Analyse complète après réorganisation*
 
-## 1. ARCHITECTURE GÉNÉRALE
+## ARCHITECTURE FRONTEND
 
-### Structure des répertoires
+### Structure des dossiers
 ```
 client/
-├── index.html                    # Point d'entrée HTML
-└── src/
-    ├── main.tsx                  # Point d'entrée React
-    ├── App.tsx                   # Composant racine avec routeur
-    ├── index.css                 # Styles globaux et variables CSS
-    ├── components/               # Composants partagés
-    ├── hooks/                    # Hooks React personnalisés
-    ├── lib/                      # Utilitaires et configurations
-    └── pages/                    # Pages de l'application
+├── src/
+│   ├── components/          # Composants React
+│   │   ├── ui/             # Composants UI Shadcn
+│   │   ├── wysiwyg/        # Éditeur WYSIWYG
+│   │   └── [fichiers]      # Composants métier
+│   ├── pages/              # Pages de l'application
+│   ├── hooks/              # Hooks React personnalisés
+│   └── lib/                # Utilitaires et configurations
+└── index.html              # Point d'entrée HTML
 ```
 
-## 2. COMPOSANTS UI (SHADCN/UI)
+## INVENTAIRE DÉTAILLÉ DES COMPOSANTS
 
-### Composants de base (client/src/components/ui/)
-- **accordion.tsx** - Composant accordéon pliable
-- **alert-dialog.tsx** - Modales d'alerte
-- **alert.tsx** - Messages d'alerte
-- **aspect-ratio.tsx** - Contrôle des proportions
-- **avatar.tsx** - Images de profil utilisateur
-- **badge.tsx** - Étiquettes et badges
-- **breadcrumb.tsx** - Navigation par fil d'Ariane
-- **button.tsx** - Boutons avec variants
-- **calendar.tsx** - Composant calendrier
-- **card.tsx** - Cartes de contenu
-- **carousel.tsx** - Carrousel d'images/contenu
-- **chart.tsx** - Graphiques et visualisations
-- **checkbox.tsx** - Cases à cocher
-- **collapsible.tsx** - Sections repliables
-- **command.tsx** - Palette de commandes
-- **context-menu.tsx** - Menus contextuels
-- **dialog.tsx** - Modales et dialogues
-- **drawer.tsx** - Tiroirs latéraux
-- **dropdown-menu.tsx** - Menus déroulants
-- **form.tsx** - Composants de formulaire
-- **hover-card.tsx** - Cartes au survol
-- **input-otp.tsx** - Saisie de codes OTP
-- **input.tsx** - Champs de saisie
-- **label.tsx** - Étiquettes de champ
-- **menubar.tsx** - Barres de menu
-- **navigation-menu.tsx** - Menus de navigation
-- **pagination.tsx** - Pagination de contenu
-- **popover.tsx** - Fenêtres contextuelles
-- **progress.tsx** - Barres de progression
-- **radio-group.tsx** - Groupes de boutons radio
-- **resizable.tsx** - Panneaux redimensionnables
-- **scroll-area.tsx** - Zones de défilement
-- **select.tsx** - Listes de sélection
-- **separator.tsx** - Séparateurs visuels
-- **sheet.tsx** - Feuilles latérales
-- **sidebar.tsx** - Barres latérales
-- **skeleton.tsx** - Squelettes de chargement
-- **slider.tsx** - Curseurs de valeur
-- **switch.tsx** - Interrupteurs on/off
-- **table.tsx** - Tableaux de données
-- **tabs.tsx** - Onglets
-- **textarea.tsx** - Zones de texte multiligne
-- **toast.tsx** - Notifications toast
-- **toaster.tsx** - Gestionnaire de toasts
-- **toggle-group.tsx** - Groupes de boutons toggle
-- **toggle.tsx** - Boutons à bascule
-- **tooltip.tsx** - Info-bulles
+### 1. COMPOSANTS UI SHADCN (47 composants)
 
-### Composants spécialisés (client/src/components/)
-- **PortalCustomization.tsx** - Personnalisation du portail
-- **features-section.tsx** - Section des fonctionnalités
-- **footer.tsx** - Pied de page
-- **hero-section.tsx** - Section héro d'accueil
-- **navigation.tsx** - Navigation principale
-- **popular-courses-section.tsx** - Section des cours populaires
-- **wysiwyg/** - Éditeur WYSIWYG (répertoire)
+#### Navigation & Layout
+1. **navigation-menu.tsx** - Menu principal de navigation
+2. **sidebar.tsx** - Barre latérale 
+3. **breadcrumb.tsx** - Fil d'Ariane
+4. **menubar.tsx** - Barre de menu
+5. **sheet.tsx** - Panneau latéral coulissant
 
-## 3. HOOKS PERSONNALISÉS (client/src/hooks/)
+#### Formulaires & Saisie
+6. **form.tsx** - Composant formulaire avec validation
+7. **input.tsx** - Champ de saisie texte
+8. **textarea.tsx** - Zone de texte multilignes
+9. **button.tsx** - Boutons avec variantes
+10. **checkbox.tsx** - Cases à cocher
+11. **radio-group.tsx** - Boutons radio groupés
+12. **select.tsx** - Listes déroulantes
+13. **switch.tsx** - Interrupteurs
+14. **slider.tsx** - Curseurs de valeur
+15. **input-otp.tsx** - Saisie de code OTP
+16. **label.tsx** - Étiquettes de champs
 
-- **use-mobile.tsx** - Détection des appareils mobiles
-- **use-toast.ts** - Gestion des notifications toast
-- **useAuth.ts** - Authentification et gestion utilisateur
-- **useTheme.ts** - Gestion du thème sombre/clair
+#### Affichage de données
+17. **table.tsx** - Tableaux de données
+18. **card.tsx** - Cartes d'information
+19. **badge.tsx** - Badges et étiquettes
+20. **avatar.tsx** - Photos de profil
+21. **skeleton.tsx** - Placeholders de chargement
+22. **progress.tsx** - Barres de progression
+23. **chart.tsx** - Graphiques et diagrammes
 
-## 4. PAGES DE L'APPLICATION (client/src/pages/)
+#### Interactions & Feedback
+24. **dialog.tsx** - Modales et dialogues
+25. **alert-dialog.tsx** - Dialogues de confirmation
+26. **popover.tsx** - Fenêtres contextuelles
+27. **tooltip.tsx** - Info-bulles
+28. **hover-card.tsx** - Cartes au survol
+29. **context-menu.tsx** - Menus contextuels
+30. **dropdown-menu.tsx** - Menus déroulants
+31. **command.tsx** - Palette de commandes
+32. **toast.tsx** - Notifications toast
+33. **toaster.tsx** - Gestionnaire de notifications
+34. **alert.tsx** - Alertes d'information
 
-### Pages principales
-- **home.tsx** - Page d'accueil générale
-- **landing.tsx** - Page de présentation/landing
-- **portal.tsx** - Portail de sélection d'établissement
-- **portal-old.tsx** - Ancien portail (legacy)
-- **login.tsx** - Page de connexion
-- **dashboard.tsx** - Tableau de bord utilisateur
-- **not-found.tsx** - Page 404
+#### Organisation & Groupement
+35. **tabs.tsx** - Onglets
+36. **accordion.tsx** - Accordéons
+37. **collapsible.tsx** - Éléments pliables
+38. **separator.tsx** - Séparateurs visuels
+39. **aspect-ratio.tsx** - Ratios d'aspect
+40. **scroll-area.tsx** - Zones de défilement
+41. **resizable.tsx** - Panneaux redimensionnables
 
-### Pages administratives
-- **admin.tsx** - Interface d'administration
-- **super-admin.tsx** - Interface super administrateur
-- **user-management.tsx** - Gestion des utilisateurs
-- **establishment.tsx** - Gestion des établissements
+#### Contrôles avancés
+42. **calendar.tsx** - Calendrier de sélection de date
+43. **toggle.tsx** - Boutons bascule
+44. **toggle-group.tsx** - Groupes de boutons bascule
+45. **pagination.tsx** - Navigation par pages
+46. **drawer.tsx** - Tiroirs coulissants
+47. **carousel.tsx** - Carrousels d'images
 
-### Pages pédagogiques
-- **courses.tsx** - Catalogue des cours
-- **assessments.tsx** - Évaluations et examens
-- **study-groups.tsx** - Groupes d'étude
+### 2. COMPOSANTS MÉTIER (6 composants)
 
-### Pages utilitaires
-- **user-manual.tsx** - Manuel utilisateur
-- **archive-export.tsx** - Archivage et export
-- **system-updates.tsx** - Mises à jour système
-- **wysiwyg-editor.tsx** - Éditeur WYSIWYG
+#### Spécialisés E-learning
+1. **PortalCustomization.tsx**
+   - Personnalisation de l'interface établissement
+   - Configuration des thèmes et couleurs
+   - Gestion du branding
 
-## 5. UTILITAIRES ET CONFIGURATION (client/src/lib/)
+2. **features-section.tsx**  
+   - Section présentation des fonctionnalités
+   - Mise en valeur des capacités de la plateforme
 
-- **authUtils.ts** - Utilitaires d'authentification
-- **queryClient.ts** - Configuration TanStack Query
-- **utils.ts** - Fonctions utilitaires générales
+3. **hero-section.tsx**
+   - Section héroïque page d'accueil
+   - Présentation principale de l'application
 
-## 6. ROUTAGE (Wouter)
+4. **footer.tsx**
+   - Pied de page personnalisable
+   - Liens et informations établissement
 
-### Routes configurées dans App.tsx
-```typescript
-- "/" → Home (page d'accueil)
-- "/portal" → Portal (sélection établissement)
-- "/establishment/:slug" → Establishment (vue établissement)
-- "/login" → Login (connexion)
-- "/dashboard" → Dashboard (tableau de bord)
-- "/admin" → AdminPage (administration)
-- "/super-admin" → SuperAdminPage (super admin)
-- "/user-management" → UserManagement (gestion utilisateurs)
-- "/courses" → CoursesPage (cours)
-- "/assessments" → AssessmentsPage (évaluations)
-- "/manual" → UserManualPage (manuel)
-- "/archive" → ArchiveExportPage (archives)
-- "/system-updates" → SystemUpdatesPage (MAJ système)
-- "/wysiwyg-editor" → WysiwygEditorPage (éditeur)
-- "/study-groups" → StudyGroupsPage (groupes d'étude)
-- "/*" → NotFound (404)
-```
+5. **navigation.tsx**
+   - Navigation principale adaptative
+   - Menu responsive multi-niveau
 
-## 7. GESTION D'ÉTAT
+6. **popular-courses-section.tsx**
+   - Section des cours populaires
+   - Affichage des formations tendances
 
-### TanStack Query
-- **Configuration**: client/src/lib/queryClient.ts
-- **Fonctions utilitaires**:
-  - `apiRequest()` - Requêtes HTTP avec authentification
-  - `getQueryFn()` - Fonction de requête par défaut
-  - Gestion automatique du cache et des erreurs 401
+### 3. ÉDITEUR WYSIWYG
+Dossier `wysiwyg/` (contenu non détaillé mais présent)
+- Éditeur de contenu riche
+- Interface de création de pages personnalisées
 
-### Authentification
-- **Hook principal**: useAuth()
-- **États gérés**: user, isLoading, isAuthenticated
-- **Persistance**: Session cookies avec Express
+## INVENTAIRE DES PAGES (16 pages)
 
-## 8. STYLING ET THÈME
+### 1. PAGES PUBLIQUES
+1. **landing.tsx** - Page d'atterrissage publique
+2. **home.tsx** - Page d'accueil connectée
+3. **not-found.tsx** - Page 404
 
-### Configuration Tailwind CSS
-- **Fichier principal**: index.css
-- **Variables CSS**: définition des couleurs et thèmes
-- **Mode sombre**: support intégré avec next-themes
-- **Responsive**: design mobile-first
+### 2. AUTHENTIFICATION  
+4. **login.tsx** - Page de connexion
 
-### Système de thème
-- **Couleurs personnalisables** par établissement
-- **Variables CSS** dynamiques
-- **Support dark/light mode**
+### 3. PAGES UTILISATEUR
+5. **dashboard.tsx** - Tableau de bord utilisateur
+6. **courses.tsx** - Catalogue des cours
+7. **assessments.tsx** - Évaluations et examens
+8. **study-groups.tsx** - Groupes d'étude
+9. **portal.tsx** - Portail utilisateur principal
+10. **portal-old.tsx** - Ancienne version du portail
 
-## 9. FONCTIONNALITÉS PRINCIPALES
+### 4. PAGES ÉDITEUR
+11. **wysiwyg-editor.tsx** - Éditeur de pages
+12. **establishment.tsx** - Gestion établissement
 
-### Authentification
-- Connexion locale avec email/mot de passe
-- Gestion de session
-- Contrôle d'accès par rôle
-- Redirection automatique
+### 5. PAGES ADMINISTRATION
+13. **admin.tsx** - Interface administration
+14. **super-admin.tsx** - Interface super administrateur  
+15. **user-management.tsx** - Gestion des utilisateurs
+16. **user-manual.tsx** - Manuel utilisateur
+17. **archive-export.tsx** - Export et archivage
+18. **system-updates.tsx** - Mises à jour système
 
-### Tableau de bord
-- Statistiques utilisateur
-- Navigation par rôle
-- Accès rapide aux fonctions principales
-- Interface responsive
+## INVENTAIRE DES HOOKS (4 hooks)
 
-### Gestion des cours
-- Catalogue de cours
-- Inscription et suivi
-- Évaluations intégrées
-- Progression utilisateur
+### Hooks personnalisés
+1. **useAuth.ts** - Gestion de l'authentification
+   - États de connexion
+   - Informations utilisateur
+   - Actions de connexion/déconnexion
 
-### Personnalisation
-- Thèmes par établissement
-- Contenu personnalisable
-- Éditeur WYSIWYG
-- Branding adaptatif
+2. **useTheme.ts** - Gestion des thèmes
+   - Basculement mode sombre/clair
+   - Persistance des préférences
 
-### Administration
-- Gestion multi-utilisateurs
-- Contrôle des accès
-- Statistiques et rapports
-- Archivage et export
+3. **use-mobile.tsx** - Détection mobile
+   - Responsive design
+   - Adaptation interface
 
-## 10. ICÔNES ET ASSETS
+4. **use-toast.ts** - Notifications
+   - Gestion des messages toast
+   - File d'attente de notifications
 
-### Bibliothèque Lucide React
-Plus de 50 icônes utilisées dans l'interface :
-- BookOpen, Users, Calendar, Award
-- Settings, Shield, FileText, Trophy
-- TrendingUp, Clock, MessageSquare
-- Archive, RefreshCw, etc.
+## INVENTAIRE DES UTILITAIRES (3 fichiers)
 
-### Assets personnalisés
-- Logos d'établissement
-- Images de cours
-- Avatars utilisateur
-- Médias pédagogiques
+### Utilitaires et configurations
+1. **utils.ts** - Utilitaires génériques
+   - Helpers de formatage
+   - Fonctions communes
 
-## 11. ACCESSIBILITÉ
+2. **queryClient.ts** - Configuration TanStack Query
+   - Client de requêtes API
+   - Gestion du cache
 
-### Features implémentées
-- Navigation au clavier
-- ARIA labels sur les composants interactifs
-- Contraste de couleurs respecté
-- Support des lecteurs d'écran
-- Design responsive
+3. **authUtils.ts** - Utilitaires d'authentification
+   - Helpers de session
+   - Validation des rôles
 
-### Data-testid
-- Attributs data-testid sur tous les éléments interactifs
-- Convention de nommage : {action}-{target}
-- Éléments dynamiques avec identifiants uniques
+## ROUTES PRINCIPALES (13 routes identifiées)
 
-## 12. PERFORMANCE
+### Routes publiques
+- `/` - Landing page
+- `/login` - Connexion
 
-### Optimisations
-- Code splitting par pages
-- Lazy loading des composants
-- Cache TanStack Query optimisé
-- Gestion des états de chargement
-- Skeleton loading pour l'UX
+### Routes protégées utilisateur
+- `/dashboard` - Tableau de bord
+- `/courses` - Cours
+- `/assessments` - Évaluations  
+- `/study-groups` - Groupes d'étude
+- `/portal` - Portail
+- `/user-manual` - Manuel
 
-## 13. INTÉGRATIONS
+### Routes administration
+- `/admin` - Administration
+- `/super-admin` - Super admin
+- `/user-management` - Gestion utilisateurs
+- `/establishment` - Gestion établissement
+- `/wysiwyg-editor` - Éditeur
 
-### APIs backend
-- Authentification : /api/auth/*
-- Utilisateurs : /api/users/*
-- Cours : /api/courses/*
-- Établissements : /api/establishments/*
-- Contenu : /api/content/*
+## TECHNOLOGIES FRONTEND
 
-### WebSocket
-- Messages en temps réel
-- Notifications push
-- Collaboration temps réel
+### Stack principal
+- **React 18** - Framework UI
+- **TypeScript** - Typage statique
+- **Vite** - Build tool et dev server
+- **Wouter** - Routage léger
+- **TanStack Query** - Gestion d'état serveur
 
-## 14. ERREURS ET DEBUG
+### Styling & UI
+- **Tailwind CSS** - Framework CSS utilitaire
+- **Shadcn/UI** - Bibliothèque de composants
+- **Framer Motion** - Animations
+- **Lucide React** - Icônes
+- **React Icons** - Icônes complémentaires
 
-### Gestion d'erreurs
-- Toast notifications pour les erreurs
-- Pages d'erreur dédiées (404)
-- Logs client-side
-- Retry automatique des requêtes
+### Formulaires & Validation
+- **React Hook Form** - Gestion de formulaires
+- **Zod** - Validation de schémas
+- **@hookform/resolvers** - Intégration validateurs
 
-## 15. CONFORMITÉ ET STANDARDS
+### Fonctionnalités avancées
+- **Date-fns** - Manipulation de dates
+- **React Day Picker** - Sélecteur de date
+- **Input OTP** - Codes de vérification
+- **Recharts** - Graphiques
+- **Embla Carousel** - Carrousels
 
-### Technologies
-- React 18.3.1 avec TypeScript
-- Vite comme bundler
-- ESLint pour le linting
-- Prettier pour le formatage
-- Architecture composants modulaire
+## ANALYSE DE COMPATIBILITÉ
 
-### Patterns utilisés
-- Hooks personnalisés
-- Context providers
-- Higher-order components
-- Render props pattern
+### Points forts
+✅ **Architecture modulaire** bien organisée
+✅ **Composants réutilisables** avec Shadcn/UI  
+✅ **TypeScript complet** pour la sécurité
+✅ **Responsive design** adaptatif
+✅ **Gestion d'état moderne** avec TanStack Query
+✅ **Validation côté client** robuste
+
+### Points d'amélioration identifiés
+⚠️ **Tests unitaires manquants** pour les composants
+⚠️ **Documentation des composants** métier à améliorer
+⚠️ **Optimisation des performances** à analyser
+⚠️ **Accessibilité** à vérifier sur composants custom
+
+## RÉSUMÉ STATISTIQUE
+
+- **Total composants UI** : 47 (Shadcn)
+- **Total composants métier** : 6
+- **Total pages** : 16 
+- **Total hooks** : 4
+- **Total utilitaires** : 3
+- **Routes principales** : 13
+- **Dépendances** : ~60 packages frontend
+
+---
+*Inventaire généré automatiquement - StacGateLMS Frontend Analysis*

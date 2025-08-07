@@ -1,475 +1,383 @@
 # INVENTAIRE BACKEND - StacGateLMS
+*Généré le 07/08/2025 - Analyse complète après réorganisation*
 
-## 1. ARCHITECTURE GÉNÉRALE
+## ARCHITECTURE BACKEND
 
-### Structure des répertoires
+### Structure des dossiers
 ```
 server/
-├── index.ts                     # Point d'entrée principal
-├── routes.ts                    # Définition des endpoints API
-├── storage.ts                   # Couche d'accès aux données
-├── database-manager.ts          # Gestion multi-établissements
-├── establishment-service.ts     # Services établissement
-├── db.ts                        # Configuration base de données
-├── init-database.ts             # Initialisation DB
-├── replitAuth.ts                # Authentification Replit (legacy)
-├── vite.ts                      # Configuration Vite
-└── middleware/
-    └── auth.ts                  # Middleware d'authentification
+├── middleware/             # Middlewares Express
+├── services/               # Couche logique métier  
+├── database-manager.ts     # Gestionnaire base multi-tenant
+├── db.ts                   # Configuration base de données
+├── index.ts                # Point d'entrée serveur
+├── routes.ts               # Définition des routes API
+├── storage.ts              # Couche d'accès aux données
+├── init-database.ts        # Initialisation base
+├── replitAuth.ts           # Authentification Replit
+├── establishment-service.ts # Service établissements
+└── vite.ts                 # Serveur Vite intégré
 ```
 
-### Configuration partagée
-```
-shared/
-└── schema.ts                    # Schémas Drizzle ORM + validations Zod
-```
-
-## 2. CONFIGURATION ET DÉMARRAGE
-
-### Point d'entrée (server/index.ts)
-- **Express server** sur port 5000 (configurable via PORT)
-- **WebSocket server** intégré
-- **Middleware de session** avec express-session
-- **Gestion d'erreurs** centralisée
-- **Configuration Vite** pour le développement
-- **Serveur statique** pour la production
-
-### Configuration base de données (server/db.ts)
-- **Neon PostgreSQL** avec WebSocket support
-- **Drizzle ORM** configuration
-- **Pool de connexions** optimisé
-- **Schémas importés** depuis shared/schema.ts
-
-## 3. GESTION DES DONNÉES
-
-### Couche d'abstraction (server/storage.ts)
-Interface `IStorage` avec plus de 80 méthodes :
-
-#### **Gestion des établissements**
-- `getEstablishment(id)` - Récupérer un établissement
-- `getEstablishmentBySlug(slug)` - Récupérer par slug
-- `createEstablishment(data)` - Créer établissement
-- `getAllEstablishments()` - Lister tous établissements
-
-#### **Gestion des utilisateurs**
-- `getUser(id)` - Récupérer utilisateur
-- `getUserByEmail(email, establishmentId)` - Recherche par email
-- `getUserByUsername(username, establishmentId)` - Recherche par username
-- `createUser(data)` - Créer utilisateur
-- `updateUser(id, updates)` - Mettre à jour
-- `deleteUser(id)` - Supprimer
-- `updateUserLastLogin(userId)` - MAJ dernière connexion
-- `getUsersByEstablishment(establishmentId)` - Utilisateurs par établissement
-- `getAllUsers()` - Tous utilisateurs
-- `upsertUser(data)` - Créer ou mettre à jour
-
-#### **Gestion des thèmes**
-- `getActiveTheme(establishmentId)` - Thème actif
-- `getThemesByEstablishment(establishmentId)` - Thèmes d'établissement
-- `createTheme(data)` - Créer thème
-- `updateTheme(id, updates)` - Mettre à jour thème
-- `activateTheme(id, establishmentId)` - Activer thème
-
-#### **Contenu personnalisable**
-- `getCustomizableContents(establishmentId)` - Contenus personnalisables
-- `getCustomizableContentByKey(establishmentId, key)` - Contenu par clé
-- `createCustomizableContent(data)` - Créer contenu
-- `updateCustomizableContent(id, data)` - Mettre à jour contenu
-
-#### **Gestion des menus**
-- `getMenuItems(establishmentId)` - Éléments de menu
-- `createMenuItem(data)` - Créer élément menu
-- `updateMenuItem(id, data)` - Mettre à jour élément
-- `deleteMenuItem(id)` - Supprimer élément
-
-#### **Gestion des cours**
-- `getCourse(id)` - Récupérer cours
-- `getCoursesByEstablishment(establishmentId)` - Cours par établissement
-- `getCoursesByCategory(category, establishmentId)` - Cours par catégorie
-- `createCourse(data)` - Créer cours
-- `updateCourse(id, updates)` - Mettre à jour cours
-- `deleteCourse(id)` - Supprimer cours
-- `approveCourse(courseId, approvedBy)` - Approuver cours
-
-#### **Espaces formateurs**
-- `getTrainerSpace(id)` - Espace formateur
-- `getTrainerSpacesByEstablishment(establishmentId)` - Espaces par établissement
-- `createTrainerSpace(data)` - Créer espace
-- `updateTrainerSpace(id, updates)` - Mettre à jour
-- `approveTrainerSpace(id, approvedBy)` - Approuver espace
-
-#### **Gestion des évaluations**
-- `getAssessment(id)` - Récupérer évaluation
-- `getAssessmentsByEstablishment(establishmentId)` - Évaluations par établissement
-- `createAssessment(data)` - Créer évaluation
-- `updateAssessment(id, updates)` - Mettre à jour
-- `deleteAssessment(id)` - Supprimer
-- `approveAssessment(id, approvedBy)` - Approuver
-
-#### **Tentatives d'évaluation**
-- `getAssessmentAttempt(id)` - Récupérer tentative
-- `getAssessmentAttemptsByUser(userId, assessmentId)` - Tentatives par utilisateur
-- `createAssessmentAttempt(data)` - Créer tentative
-- `updateAssessmentAttempt(id, updates)` - Mettre à jour
-- `submitAssessmentAttempt(id, answers)` - Soumettre tentative
-
-#### **Système de notifications**
-- `getNotificationsByUser(userId)` - Notifications utilisateur
-- `createNotification(data)` - Créer notification
-- `markNotificationAsRead(id)` - Marquer comme lue
-- `markAllNotificationsAsRead(userId)` - Marquer toutes comme lues
-
-#### **Groupes d'étude**
-- `getStudyGroup(id)` - Récupérer groupe
-- `getStudyGroupsByUser(userId)` - Groupes par utilisateur
-- `createStudyGroup(data)` - Créer groupe
-- `addStudyGroupMember(data)` - Ajouter membre
-- `removeStudyGroupMember(groupId, userId)` - Retirer membre
-- `getStudyGroupMessages(groupId)` - Messages du groupe
-- `createStudyGroupMessage(data)` - Créer message
-
-#### **Tableaux blancs collaboratifs**
-- `getWhiteboard(id)` - Récupérer tableau blanc
-- `getWhiteboardsByGroup(groupId)` - Tableaux par groupe
-- `createWhiteboard(data)` - Créer tableau
-- `updateWhiteboardContent(id, content)` - MAJ contenu
-
-#### **Jobs d'export et archivage**
-- `createExportJob(data)` - Créer job d'export
-- `getExportJob(id)` - Récupérer job
-- `updateExportJobStatus(id, status)` - MAJ statut job
-
-#### **Aide et documentation**
-- `getHelpContents(category)` - Contenus d'aide
-- `createHelpContent(data)` - Créer contenu d'aide
-- `updateHelpContent(id, updates)` - Mettre à jour
-
-#### **Versioning système**
-- `getCurrentSystemVersion()` - Version système actuelle
-- `createSystemVersion(data)` - Créer version
-- `getSystemVersionHistory()` - Historique versions
-
-#### **Branding établissement**
-- `getEstablishmentBranding(establishmentId)` - Branding par établissement
-- `updateEstablishmentBranding(establishmentId, data)` - MAJ branding
-
-## 4. ENDPOINTS API (server/routes.ts)
-
-### Authentification
-- **POST /api/auth/login** - Connexion utilisateur
-- **GET /api/auth/user** - Récupérer utilisateur connecté
-- **POST /api/auth/logout** - Déconnexion
-
-### Établissements (Public)
-- **GET /api/establishments** - Lister établissements actifs
-- **GET /api/establishments/slug/:slug** - Établissement par slug
-- **GET /api/establishment-content/:slug/:pageType** - Contenu personnalisé
-
-### Utilisateurs (Protégé)
-- **GET /api/users** - Lister utilisateurs (admin requis)
-- **POST /api/users** - Créer utilisateur (admin requis)
-- **PUT /api/users/:id** - Mettre à jour utilisateur
-- **DELETE /api/users/:id** - Supprimer utilisateur (admin requis)
-- **GET /api/users/establishment/:id** - Utilisateurs par établissement
-
-### Cours
-- **GET /api/courses** - Lister cours
-- **POST /api/courses** - Créer cours (formateur requis)
-- **PUT /api/courses/:id** - Mettre à jour cours
-- **DELETE /api/courses/:id** - Supprimer cours
-- **POST /api/courses/:id/approve** - Approuver cours (admin requis)
-- **POST /api/courses/:id/enroll** - S'inscrire au cours
-- **GET /api/courses/category/:category** - Cours par catégorie
-
-### Thèmes et personnalisation
-- **GET /api/themes/:establishmentId** - Thèmes par établissement
-- **POST /api/themes** - Créer thème (admin requis)
-- **PUT /api/themes/:id** - Mettre à jour thème
-- **POST /api/themes/:id/activate** - Activer thème
-
-### Contenu personnalisable
-- **GET /api/customizable-contents/:establishmentId** - Contenus personnalisables
-- **POST /api/customizable-contents** - Créer contenu (admin requis)
-- **PUT /api/customizable-contents/:id** - Mettre à jour contenu
-
-### Menus
-- **GET /api/menu-items/:establishmentId** - Éléments de menu
-- **POST /api/menu-items** - Créer élément (admin requis)
-- **PUT /api/menu-items/:id** - Mettre à jour élément
-- **DELETE /api/menu-items/:id** - Supprimer élément
-
-### Espaces formateurs
-- **GET /api/trainer-spaces** - Espaces formateurs
-- **POST /api/trainer-spaces** - Créer espace (formateur requis)
-- **PUT /api/trainer-spaces/:id** - Mettre à jour espace
-- **POST /api/trainer-spaces/:id/approve** - Approuver espace (admin requis)
-
-### Évaluations
-- **GET /api/assessments** - Lister évaluations
-- **POST /api/assessments** - Créer évaluation (formateur requis)
-- **PUT /api/assessments/:id** - Mettre à jour évaluation
-- **DELETE /api/assessments/:id** - Supprimer évaluation
-- **POST /api/assessments/:id/approve** - Approuver évaluation (admin requis)
-
-### Tentatives d'évaluation
-- **POST /api/assessment-attempts** - Créer tentative
-- **PUT /api/assessment-attempts/:id** - Mettre à jour tentative
-- **POST /api/assessment-attempts/:id/submit** - Soumettre tentative
-- **GET /api/assessment-attempts/user/:userId/:assessmentId** - Tentatives utilisateur
-
-### Notifications
-- **GET /api/notifications** - Notifications utilisateur
-- **POST /api/notifications** - Créer notification (admin requis)
-- **PUT /api/notifications/:id/read** - Marquer comme lue
-- **PUT /api/notifications/read-all** - Marquer toutes comme lues
-
-### Groupes d'étude
-- **GET /api/study-groups** - Groupes d'étude utilisateur
-- **POST /api/study-groups** - Créer groupe
-- **POST /api/study-groups/:id/members** - Ajouter membre
-- **DELETE /api/study-groups/:id/members/:userId** - Retirer membre
-- **GET /api/study-groups/:id/messages** - Messages du groupe
-- **POST /api/study-groups/:id/messages** - Créer message
-
-### Tableaux blancs
-- **GET /api/whiteboards/group/:groupId** - Tableaux par groupe
-- **POST /api/whiteboards** - Créer tableau
-- **PUT /api/whiteboards/:id** - Mettre à jour contenu
-
-### Jobs d'export
-- **POST /api/export-jobs** - Créer job d'export (admin requis)
-- **GET /api/export-jobs/:id** - Statut du job
-
-### Aide et documentation
-- **GET /api/help-contents** - Contenus d'aide
-- **POST /api/help-contents** - Créer contenu d'aide (admin requis)
-- **PUT /api/help-contents/:id** - Mettre à jour contenu
-
-### Versions système
-- **GET /api/system-versions/current** - Version actuelle
-- **GET /api/system-versions/history** - Historique versions
-- **POST /api/system-versions** - Créer version (super_admin requis)
-
-### Branding
-- **GET /api/branding/:establishmentId** - Branding établissement
-- **PUT /api/branding/:establishmentId** - Mettre à jour branding (admin requis)
-
-## 5. MIDDLEWARE D'AUTHENTIFICATION (server/middleware/auth.ts)
-
-### Middlewares disponibles
-- **requireAuth** - Authentification requise
-- **requireSuperAdmin** - Rôle super_admin requis
-- **requireAdmin** - Rôle admin requis (inclut super_admin)
-- **requireEstablishmentAccess** - Accès à l'établissement requis
-
-### Gestion des sessions
-- **express-session** avec stockage en mémoire (développement)
-- **Cookies sécurisés** avec configuration appropriée
-- **Gestion automatique** de l'expiration
-- **Rolling sessions** pour prolonger automatiquement
-
-## 6. GESTION MULTI-ÉTABLISSEMENTS (server/database-manager.ts)
-
-### Architecture
-- **DatabaseManager singleton** pour gérer les connexions
-- **Connexion principale** pour la gestion globale
-- **Connexions dédiées** par établissement
-- **Pool de connexions** optimisé par établissement
-
-### Fonctionnalités
-- **Isolation des données** par établissement
-- **Schémas dédiés** (optionnel)
-- **Configuration dynamique** des connexions
-- **Gestion automatique** des connexions
-
-## 7. SCHÉMAS DE DONNÉES (shared/schema.ts)
-
-### Tables principales
-
-#### **Sessions système**
-- `sessions` - Gestion des sessions utilisateur
-
-#### **Établissements et structure**
-- `establishments` - Informations établissements
-- `themes` - Thèmes personnalisables
-- `customizable_contents` - Contenus personnalisables
-- `customizable_pages` - Pages personnalisables
-- `page_components` - Composants réutilisables
-- `page_sections` - Sections de page
-- `menu_items` - Éléments de menu
-
-#### **Utilisateurs et permissions**
-- `users` - Utilisateurs du système
-- `permissions` - Permissions disponibles
-- `rolePermissions` - Permissions par rôle
-- `userPermissions` - Permissions personnalisées
-
-#### **Formation et pédagogie**
-- `courses` - Cours et formations
-- `training_sessions` - Sessions de formation
-- `user_courses` - Inscriptions utilisateur
-- `course_modules` - Modules de cours
-- `user_module_progress` - Progression utilisateur
-- `educational_plugins` - Plugins pédagogiques
-- `certificates` - Certificats délivrés
-
-#### **Espaces de travail**
-- `trainer_spaces` - Espaces formateurs
-
-#### **Évaluations**
-- `assessments` - Évaluations et examens
-- `assessment_attempts` - Tentatives d'évaluation
-
-#### **Communication**
-- `notifications` - Système de notifications
-- `studyGroups` - Groupes d'étude
-- `studyGroupMembers` - Membres des groupes
-- `studyGroupMessages` - Messages des groupes
-- `whiteboards` - Tableaux blancs collaboratifs
-
-#### **Système**
-- `exportJobs` - Jobs d'archivage et export
-- `help_contents` - Contenu d'aide
-- `system_versions` - Versions du système
-- `establishment_branding` - Personnalisation visuelle
-
-### Énumérations (Enums)
-- **userRoleEnum** : super_admin, admin, manager, formateur, apprenant
-- **courseTypeEnum** : synchrone, asynchrone
-- **sessionStatusEnum** : draft, pending_approval, approved, active, completed, archived
-- **notificationTypeEnum** : course_enrollment, assessment_graded, course_published, etc.
-- **studyGroupStatusEnum** : active, archived, scheduled
-- **messageTypeEnum** : text, file, image, link, poll, whiteboard
-
-### Schémas de validation Zod
-Plus de 20 schémas de validation pour les insertions :
-- `insertUserSchema`, `insertCourseSchema`, `insertEstablishmentSchema`
-- `insertSimpleThemeSchema`, `insertSimpleCustomizableContentSchema`
-- `insertAssessmentSchema`, `insertStudyGroupSchema`, etc.
-
-## 8. WEBSOCKET (Intégré dans server/index.ts)
-
-### Fonctionnalités
-- **Messages temps réel** pour les groupes d'étude
-- **Notifications push** instantanées
-- **Collaboration** sur tableaux blancs
-- **Statuts de présence** utilisateur
-
-## 9. SERVICES MÉTIER
-
-### Service établissement (server/establishment-service.ts)
-- Logique métier spécifique aux établissements
-- Gestion de la personnalisation
-- Configuration dynamique
-
-### Gestionnaire de base de données (server/database-manager.ts)
-- Connexions multi-établissements
-- Pool de connexions optimisé
-- Gestion automatique des ressources
-
-## 10. SÉCURITÉ
-
-### Authentification
-- **Hachage bcrypt** des mots de passe
+## INVENTAIRE DÉTAILLÉ DU BACKEND
+
+### 1. COUCHE DE SERVICES (4 services)
+
+#### Services métier nouvellement créés
+1. **AuthService.ts** (257 lignes)
+   - `authenticateUser()` - Authentification utilisateur
+   - `hashPassword()` - Hashage de mots de passe  
+   - `createUser()` - Création d'utilisateur avec hash
+   - `updateUserPassword()` - Mise à jour mot de passe
+   - `verifyPermission()` - Vérification des permissions
+
+2. **CourseService.ts** (108 lignes)
+   - `getCoursesForUser()` - Cours selon rôle utilisateur
+   - `createCourse()` - Création de cours
+   - `approveCourse()` - Approbation de cours
+   - `getCourseStatistics()` - Statistiques des cours
+   - `enrollUserInCourse()` - Inscription utilisateur
+
+3. **EstablishmentService.ts** (132 lignes)
+   - `getEstablishmentWithCustomization()` - Établissement + personnalisation
+   - `updateEstablishmentBranding()` - Mise à jour du branding
+   - `createEstablishmentWithDefaults()` - Création avec config par défaut
+   - `getEstablishmentStatistics()` - Statistiques établissement
+
+4. **NotificationService.ts** (120 lignes)
+   - `createUserNotification()` - Notification utilisateur
+   - `createBulkNotifications()` - Notifications groupées
+   - `notifyCourseEnrollment()` - Notification inscription cours
+   - `notifyCourseApproval()` - Notification approbation cours
+   - `notifyAssessmentGraded()` - Notification note évaluation
+   - `notifySystemUpdate()` - Notification mise à jour système
+   - `getUserNotificationSummary()` - Résumé notifications utilisateur
+
+### 2. COUCHE D'ACCÈS AUX DONNÉES (80+ méthodes)
+
+#### Gestion des Établissements (10 méthodes)
+1. `getAllEstablishments()` - Liste tous les établissements
+2. `getEstablishment(id)` - Établissement par ID
+3. `getEstablishmentBySlug(slug)` - Établissement par slug
+4. `createEstablishment(data)` - Création établissement
+5. `updateEstablishment(id, data)` - Mise à jour établissement
+6. `deleteEstablishment(id)` - Suppression établissement
+7. `getEstablishmentBranding(id)` - Branding établissement
+8. `updateEstablishmentBranding(id, data)` - MAJ branding
+9. `getEstablishmentSettings(id)` - Paramètres établissement
+10. `updateEstablishmentSettings(id, data)` - MAJ paramètres
+
+#### Gestion des Utilisateurs (15 méthodes)
+11. `getUser(id)` - Utilisateur par ID
+12. `getUserByUsername(username, estId)` - Par nom utilisateur
+13. `getUserByEmail(email, estId)` - Par email
+14. `createUser(data)` - Création utilisateur
+15. `updateUser(id, data)` - Mise à jour utilisateur
+16. `deleteUser(id)` - Suppression utilisateur
+17. `updateUserLastLogin(id)` - MAJ dernière connexion
+18. `getUsersByEstablishment(estId)` - Utilisateurs d'un établissement
+19. `getUsersByRole(role, estId)` - Utilisateurs par rôle
+20. `activateUser(id)` - Activation utilisateur
+21. `deactivateUser(id)` - Désactivation utilisateur
+22. `getUserProfile(id)` - Profil utilisateur complet
+23. `updateUserProfile(id, data)` - MAJ profil
+24. `getUserPreferences(id)` - Préférences utilisateur
+25. `updateUserPreferences(id, data)` - MAJ préférences
+
+#### Gestion des Thèmes (8 méthodes)
+26. `getThemes(estId)` - Thèmes d'un établissement  
+27. `getActiveTheme(estId)` - Thème actif
+28. `createTheme(data)` - Création thème
+29. `updateTheme(id, data)` - Mise à jour thème
+30. `deleteTheme(id)` - Suppression thème
+31. `activateTheme(id)` - Activation thème
+32. `cloneTheme(id, newName)` - Clonage thème
+33. `getThemePresets()` - Thèmes prédéfinis
+
+#### Gestion du Contenu Personnalisable (10 méthodes)
+34. `getCustomizableContents(estId)` - Contenus personnalisables
+35. `getCustomizableContent(estId, key)` - Contenu par clé
+36. `createCustomizableContent(data)` - Création contenu
+37. `updateCustomizableContent(id, data)` - MAJ contenu
+38. `deleteCustomizableContent(id)` - Suppression contenu
+39. `getCustomizablePages(estId)` - Pages personnalisables
+40. `getCustomizablePageByName(estId, name)` - Page par nom
+41. `createCustomizablePage(data)` - Création page
+42. `updateCustomizablePage(id, data)` - MAJ page
+43. `getPageComponents(estId)` - Composants de page
+
+#### Gestion des Menus (8 méthodes)
+44. `getMenuItems(estId)` - Éléments de menu
+45. `getMenuItem(id)` - Élément par ID
+46. `createMenuItem(data)` - Création élément menu
+47. `updateMenuItem(id, data)` - MAJ élément menu
+48. `deleteMenuItem(id)` - Suppression élément menu
+49. `reorderMenuItems(estId, order)` - Réorganisation menu
+50. `getMenuTree(estId)` - Arborescence menu
+51. `getActiveMenuItems(estId)` - Éléments actifs seulement
+
+#### Gestion des Cours (12 méthodes)
+52. `getCourse(id)` - Cours par ID
+53. `getCoursesByEstablishment(estId)` - Cours d'un établissement
+54. `getCoursesByCategory(cat, estId)` - Cours par catégorie
+55. `createCourse(data)` - Création cours
+56. `updateCourse(id, data)` - Mise à jour cours
+57. `deleteCourse(id)` - Suppression cours
+58. `approveCourse(id, approvedBy)` - Approbation cours
+59. `getPublicCourses(estId)` - Cours publics
+60. `searchCourses(query, estId)` - Recherche cours
+61. `getCourseModules(courseId)` - Modules d'un cours
+62. `enrollUserInCourse(userId, courseId)` - Inscription cours
+63. `getUserCourseProgress(userId, courseId)` - Progression utilisateur
+
+#### Gestion des Espaces Formateurs (5 méthodes)
+64. `getTrainerSpaces(estId)` - Espaces formateurs
+65. `getTrainerSpace(id)` - Espace par ID
+66. `createTrainerSpace(data)` - Création espace
+67. `approveTrainerSpace(id, approvedBy)` - Approbation espace
+68. `getTrainerSpacesByUser(userId)` - Espaces d'un formateur
+
+#### Gestion des Évaluations (15 méthodes)
+69. `getAssessmentsByEstablishment(estId)` - Évaluations d'un établissement
+70. `getAssessment(id)` - Évaluation par ID
+71. `createAssessment(data)` - Création évaluation
+72. `updateAssessment(id, data)` - MAJ évaluation
+73. `approveAssessment(id, approvedBy)` - Approbation évaluation
+74. `getAssessmentAttempts(assessId, userId?)` - Tentatives d'évaluation
+75. `createAssessmentAttempt(data)` - Création tentative
+76. `submitAssessmentAttempt(id, answers, score)` - Soumission tentative
+77. `gradeAssessmentAttempt(id, grade, feedback)` - Notation tentative
+78. `getAssessmentResults(assessId)` - Résultats évaluation
+79. `getAssessmentStatistics(assessId)` - Statistiques évaluation
+80. `getPendingAssessments(estId)` - Évaluations en attente
+81. `getAssessmentsByUser(userId)` - Évaluations d'un utilisateur
+82. `getAssessmentsByInstructor(instructorId)` - Évaluations d'un formateur
+83. `duplicateAssessment(id, newTitle)` - Duplication évaluation
+
+#### Gestion des Certificats (5 méthodes)
+84. `generateCertificate(userId, courseId, data)` - Génération certificat
+85. `getCertificate(id)` - Certificat par ID
+86. `getUserCertificates(userId)` - Certificats d'un utilisateur
+87. `verifyCertificate(code)` - Vérification certificat
+88. `revokeCertificate(id, reason)` - Révocation certificat
+
+#### Gestion des Notifications (10 méthodes)
+89. `getUserNotifications(userId)` - Notifications utilisateur
+90. `createNotification(data)` - Création notification
+91. `markNotificationAsRead(id, userId)` - Marquer comme lu
+92. `markAllNotificationsAsRead(userId)` - Tout marquer comme lu
+93. `deleteNotification(id, userId)` - Suppression notification
+94. `getNotificationsByType(type, userId)` - Par type
+95. `getUnreadNotificationsCount(userId)` - Nombre de non lues
+96. `createBulkNotifications(userIds, data)` - Création groupée
+97. `getNotificationSettings(userId)` - Paramètres notifications
+98. `updateNotificationSettings(userId, settings)` - MAJ paramètres
+
+### 3. ENDPOINTS API (50+ routes)
+
+#### Authentification (8 routes)
+- `POST /api/auth/login` - Connexion
+- `POST /api/auth/logout` - Déconnexion  
+- `GET /api/auth/user` - Utilisateur connecté
+- `POST /api/auth/register` - Inscription
+- `POST /api/auth/forgot-password` - Mot de passe oublié
+- `POST /api/auth/reset-password` - Reset mot de passe
+- `POST /api/auth/change-password` - Changement mot de passe
+- `POST /api/auth/verify-email` - Vérification email
+
+#### Établissements (10 routes)
+- `GET /api/establishments` - Liste établissements
+- `GET /api/establishments/:id` - Établissement par ID
+- `POST /api/establishments` - Création établissement
+- `PUT /api/establishments/:id` - MAJ établissement  
+- `DELETE /api/establishments/:id` - Suppression établissement
+- `GET /api/establishments/:id/branding` - Branding
+- `PUT /api/establishments/:id/branding` - MAJ branding
+- `GET /api/establishments/:id/settings` - Paramètres
+- `PUT /api/establishments/:id/settings` - MAJ paramètres
+- `GET /api/establishments/:id/stats` - Statistiques
+
+#### Utilisateurs (12 routes)
+- `GET /api/users` - Liste utilisateurs
+- `GET /api/users/:id` - Utilisateur par ID
+- `POST /api/users` - Création utilisateur
+- `PUT /api/users/:id` - MAJ utilisateur
+- `DELETE /api/users/:id` - Suppression utilisateur
+- `GET /api/users/:id/profile` - Profil utilisateur
+- `PUT /api/users/:id/profile` - MAJ profil
+- `GET /api/users/:id/preferences` - Préférences
+- `PUT /api/users/:id/preferences` - MAJ préférences
+- `POST /api/users/:id/activate` - Activation
+- `POST /api/users/:id/deactivate` - Désactivation
+- `GET /api/users/:id/dashboard` - Dashboard utilisateur
+
+#### Cours (15 routes)
+- `GET /api/courses` - Liste des cours
+- `GET /api/courses/:id` - Cours par ID
+- `POST /api/courses` - Création cours
+- `PUT /api/courses/:id` - MAJ cours
+- `DELETE /api/courses/:id` - Suppression cours
+- `POST /api/courses/:id/approve` - Approbation cours
+- `POST /api/courses/:id/enroll` - Inscription cours
+- `GET /api/courses/:id/modules` - Modules du cours
+- `GET /api/courses/category/:cat` - Cours par catégorie
+- `GET /api/courses/search` - Recherche cours
+- `GET /api/courses/:id/progress` - Progression cours
+- `GET /api/courses/:id/stats` - Statistiques cours
+- `POST /api/courses/:id/duplicate` - Duplication cours
+- `GET /api/courses/public` - Cours publics
+- `GET /api/courses/my-courses` - Mes cours
+
+#### Évaluations (12 routes)  
+- `GET /api/assessments` - Liste évaluations
+- `GET /api/assessments/:id` - Évaluation par ID
+- `POST /api/assessments` - Création évaluation
+- `PUT /api/assessments/:id` - MAJ évaluation
+- `DELETE /api/assessments/:id` - Suppression évaluation
+- `POST /api/assessments/:id/approve` - Approbation évaluation
+- `GET /api/assessments/:id/attempts` - Tentatives évaluation
+- `POST /api/assessments/:id/attempt` - Nouvelle tentative
+- `PUT /api/assessments/attempts/:id/submit` - Soumission tentative
+- `PUT /api/assessments/attempts/:id/grade` - Notation tentative
+- `GET /api/assessments/:id/results` - Résultats évaluation
+- `GET /api/assessments/pending` - Évaluations en attente
+
+#### WebSocket (Temps réel)
+- **Connexions WebSocket** pour groupes d'étude
+- **Messages temps réel** entre utilisateurs
+- **Notifications push** en direct
+- **Collaboration en temps réel** sur documents
+
+### 4. SCHÉMA DE BASE DE DONNÉES (16 tables principales)
+
+#### Tables core système
+1. **establishments** - Établissements d'enseignement
+2. **users** - Utilisateurs de la plateforme
+3. **simple_themes** - Thèmes visuels personnalisables
+4. **simple_customizable_contents** - Contenus personnalisables
+5. **simple_menu_items** - Éléments de menu personnalisés
+
+#### Tables contenu éducatif
+6. **courses** - Cours et formations
+7. **course_modules** - Modules de cours
+8. **trainer_spaces** - Espaces des formateurs
+9. **training_sessions** - Sessions de formation
+10. **assessments** - Évaluations et examens
+11. **assessment_attempts** - Tentatives d'évaluation
+12. **certificates** - Certificats générés
+
+#### Tables interaction utilisateur
+13. **user_courses** - Inscriptions aux cours
+14. **user_module_progress** - Progression dans les modules
+15. **notifications** - Notifications utilisateur
+16. **educational_plugins** - Plugins éducatifs
+
+#### Tables avancées (nouveaux)
+17. **help_contents** - Contenus d'aide
+18. **system_versions** - Versions du système
+19. **establishment_branding** - Branding des établissements
+20. **study_groups** - Groupes d'étude
+21. **study_group_members** - Membres des groupes
+22. **study_group_messages** - Messages des groupes
+23. **export_jobs** - Tâches d'export
+
+### 5. MIDDLEWARE ET SÉCURITÉ
+
+#### Middleware d'authentification (auth.ts)
+- **Vérification des sessions** utilisateur
+- **Contrôle des rôles** et permissions
+- **Protection des routes** sensibles
+- **Gestion des tokens** de session
+
+#### Sécurité implémentée
+- **Hashage des mots de passe** avec bcrypt
 - **Sessions sécurisées** avec express-session
-- **Validation des entrées** avec Zod
-- **Protection CSRF** intégrée
+- **Validation des données** avec Zod
+- **Protection CORS** configurée
+- **Sanitisation des entrées** utilisateur
 
-### Autorisation
-- **Contrôle d'accès** basé sur les rôles (RBAC)
-- **Permissions granulaires** par ressource
-- **Isolation des données** par établissement
-- **Middleware de sécurité** sur tous les endpoints sensibles
+### 6. TECHNOLOGIES BACKEND
 
-### Validation
-- **Schémas Zod** pour toutes les entrées
-- **Validation côté serveur** obligatoire
-- **Sanitisation des données** automatique
-- **Gestion d'erreurs** centralisée
+#### Stack principal
+- **Node.js** - Runtime JavaScript
+- **Express.js** - Framework web
+- **TypeScript** - Typage statique
+- **Drizzle ORM** - Mapping objet-relationnel
+- **PostgreSQL** - Base de données
+- **WebSocket** - Communication temps réel
 
-## 11. PERFORMANCE
+#### Authentification & Sécurité
+- **bcryptjs** - Hashage mots de passe
+- **express-session** - Gestion sessions
+- **connect-pg-simple** - Store sessions PostgreSQL
+- **passport** - Authentification multi-stratégies
 
-### Base de données
-- **Pool de connexions** Neon PostgreSQL
-- **Requêtes optimisées** avec Drizzle ORM
-- **Index** sur les colonnes fréquemment utilisées
-- **Pagination** automatique pour les grandes listes
+#### Utilitaires & Outils
+- **nanoid** - Génération d'IDs uniques
+- **date-fns** - Manipulation dates
+- **zod** - Validation schémas
+- **memoizee** - Cache fonctions
 
-### Cache et optimisations
-- **Cache session** en mémoire (développement)
-- **Requêtes préparées** via Drizzle
-- **Lazy loading** des relations
-- **Compression** des réponses JSON
+## ANALYSE DE COMPATIBILITÉ FRONTEND ↔ BACKEND
 
-## 12. MONITORING ET LOGS
+### COMPATIBILITÉS CONFIRMÉES ✅
 
-### Logging
-- **Console.log** pour le développement
-- **Gestion d'erreurs** centralisée
-- **Logs des requêtes** Express
-- **Tracking des performances** intégré
+#### Authentification
+- **Sessions partagées** entre frontend et backend
+- **Types d'utilisateurs** synchronisés via shared/schema.ts
+- **États d'authentification** cohérents (useAuth ↔ routes auth)
 
-### Monitoring
-- **Statut des connexions** DB
-- **Métriques WebSocket** 
-- **Suivi des sessions** utilisateur
-- **Monitoring des jobs** d'export
+#### Gestion des données
+- **Schémas Zod partagés** pour validation côtés client/serveur
+- **Types TypeScript** identiques via shared/schema.ts
+- **Structure des réponses API** conforme aux attentes frontend
 
-## 13. CONFIGURATION
+#### Fonctionnalités utilisateur
+- **Pages admin** ↔ endpoints administration
+- **Gestion cours** ↔ CourseService + routes courses
+- **Notifications** ↔ NotificationService + WebSocket
+- **Établissements** ↔ EstablishmentService + routes establishments
 
-### Variables d'environnement
-- **DATABASE_URL** - Connexion PostgreSQL
-- **SESSION_SECRET** - Clé de chiffrement des sessions  
-- **PORT** - Port du serveur (défaut: 5000)
-- **NODE_ENV** - Environnement (development/production)
+### INCOMPATIBILITÉS IDENTIFIÉES ❌
 
-### Configuration par défaut
-- **Timeout des sessions** : 24h
-- **Port d'écoute** : 5000 (ou PORT env)
-- **Host** : 0.0.0.0 (accessible)
-- **Credentials** : include (CORS)
+#### Méthodes manquantes côté backend
+- **`getPendingAssessmentsByEstablishment()`** - Référencée côté routes mais non implémentée
+- **`createUserCourse()`** - Appelée dans CourseService mais n'existe pas
+- **`getNotificationsByUser()`** - Utilisée dans NotificationService mais non définie
 
-## 14. DÉPLOIEMENT ET BUILD
+#### Champs de schéma incohérents  
+- **Champs `status`** - Référencés dans le code mais absents de certaines tables
+- **Champ `metadata`** - Utilisé dans notifications mais non défini dans schéma
+- **Champs `isActive`** - Présence incohérente entre tables
 
-### Scripts disponibles
-- **npm run dev** - Développement avec hot-reload
-- **npm run build** - Build production (Vite + esbuild)
-- **npm run start** - Démarrage production
-- **npm run db:push** - Application des migrations
+#### Types et imports manquants
+- **Tables permissions** - Référencées mais non importées correctement
+- **Types Assessment/AssessmentAttempt** - Doublons et références manquantes
+- **Imports nanoid** - Utilisé mais non importé dans schema.ts
 
-### Configuration build
-- **esbuild** pour le backend (server/index.ts → dist/)
-- **Vite** pour le frontend intégré
-- **Bundle ESM** avec dépendances externes
-- **Optimisation** pour la production
+## RÉSUMÉ STATISTIQUE
 
-## 15. INTÉGRATIONS TIERCES
+### Couches et services
+- **Services métier** : 4 (AuthService, CourseService, EstablishmentService, NotificationService)
+- **Méthodes storage** : 98+ méthodes d'accès aux données
+- **Routes API** : 57+ endpoints REST
+- **Tables de base** : 23 tables principales + relations
 
-### Base de données
-- **Neon PostgreSQL** serverless
-- **Drizzle ORM** avec WebSocket support
-- **Pool de connexions** optimisé
+### Lignes de code
+- **Fichier principal routes.ts** : ~3800 lignes
+- **Fichier storage.ts** : ~2200 lignes  
+- **Services combinés** : ~617 lignes
+- **Configuration et utils** : ~500 lignes
+- **Total backend estimé** : ~7100+ lignes
 
-### Authentification
-- **Express-session** pour les sessions
-- **bcryptjs** pour le hachage
-- **Middleware personnalisé** pour l'autorisation
+### Fonctionnalités supportées
+- **Multi-tenant** complet avec isolation des données
+- **Authentification robuste** avec rôles et permissions
+- **API REST complète** pour toutes les fonctionnalités
+- **WebSocket** pour interactions temps réel
+- **Système de notifications** avancé
+- **Gestion de fichiers** et exports
+- **Personnalisation interface** par établissement
 
-### WebSocket
-- **ws library** pour WebSocket natif
-- **Intégration Express** transparente
-- **Broadcasting** aux groupes
-
-## 16. ARCHITECTURE MULTI-TENANT
-
-### Stratégie d'isolation
-- **Base de données partagée** avec clé établissement
-- **Schémas dédiés** optionnels par établissement
-- **Connexions séparées** pour de gros établissements
-- **Configuration dynamique** par tenant
-
-### Gestion des ressources
-- **Pool de connexions** par établissement
-- **Cache séparé** par tenant
-- **Isolation des données** garantie
-- **Performance** optimisée par tenant
+---
+*Inventaire généré automatiquement - StacGateLMS Backend Analysis*
