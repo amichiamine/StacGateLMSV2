@@ -64,10 +64,30 @@ export const queryClient = new QueryClient({
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: 5 * 60 * 1000,
-      retry: 1,
+      retry: (failureCount, error: any) => {
+        // Don't retry on authentication errors
+        if (error?.status === 401 || error?.status === 403) {
+          return false;
+        }
+        // Don't retry on client errors (4xx)
+        if (error?.status >= 400 && error?.status < 500) {
+          return false;
+        }
+        // Only retry server errors (5xx) up to 2 times
+        return failureCount < 2;
+      },
     },
     mutations: {
       retry: false,
+      onError: (error: any) => {
+        // Handle specific error types
+        console.warn('Mutation error:', error?.message || 'Unknown error');
+        
+        // Don't throw for authentication errors - let components handle them
+        if (error?.status === 401 || error?.status === 403) {
+          return;
+        }
+      },
     },
   },
 });

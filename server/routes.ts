@@ -28,8 +28,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     rolling: true // Extend session on each request
   }));
 
-  // Mount API routes
+  // Mount API routes with debug logging
+  console.log('Mounting API routes at /api...');
   app.use('/api', apiRoutes);
+  
+  // Add explicit debugging for unmatched API routes
+  app.use('/api/*', (req, res, next) => {
+    console.log(`Unmatched API route: ${req.method} ${req.originalUrl}`);
+    res.status(404).json({ error: `API endpoint not found: ${req.method} ${req.originalUrl}` });
+  });
 
   // WebSocket server setup (on specific path to avoid Vite conflicts)
   const server = createServer(app);

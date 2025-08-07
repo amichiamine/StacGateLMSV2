@@ -5,7 +5,8 @@ import "./index.css";
 // Capture global unhandled rejections AVANT le rendu
 window.addEventListener('unhandledrejection', (event) => {
   console.error('Promise rejection globale:', event.reason);
-  // Prevent for common network/auth errors but allow real errors to surface
+  
+  // Prevent default for specific error types to avoid console spam
   if (event.reason instanceof Error) {
     const message = event.reason.message.toLowerCase();
     const isNetworkError = message.includes('fetch') || 
@@ -13,9 +14,21 @@ window.addEventListener('unhandledrejection', (event) => {
                           message.includes('failed to fetch');
     const isAuthError = message.includes('401') || 
                        message.includes('unauthorized') ||
-                       message.includes('non authentifié');
+                       message.includes('non authentifié') ||
+                       message.includes('authentication required');
+    const isAPIError = message.includes('404') ||
+                      message.includes('500') ||
+                      message.includes('api endpoint not found');
     
-    if (isNetworkError || isAuthError) {
+    if (isNetworkError || isAuthError || isAPIError) {
+      event.preventDefault();
+    }
+  }
+  
+  // Also handle errors that are just strings (from API responses)
+  if (typeof event.reason === 'string') {
+    const reason = event.reason.toLowerCase();
+    if (reason.includes('401') || reason.includes('404') || reason.includes('unauthorized')) {
       event.preventDefault();
     }
   }
