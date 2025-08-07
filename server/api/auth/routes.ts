@@ -2,6 +2,7 @@ import { Router } from "express";
 import { storage } from "../../storage";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
+import { requireAuth } from "../../middleware/auth";
 
 const router = Router();
 
@@ -127,6 +128,32 @@ router.post('/register', async (req: any, res) => {
   } catch (error) {
     console.error("Registration error:", error);
     res.status(500).json({ message: "Erreur lors de l'inscription" });
+  }
+});
+
+// GET /api/auth/permissions - Get user permissions
+router.get('/permissions', requireAuth, async (req: any, res) => {
+  try {
+    const user = req.user;
+    
+    // Define permissions based on user role
+    const permissions = {
+      canManageUsers: ['super_admin', 'admin'].includes(user.role),
+      canManageCourses: ['super_admin', 'admin', 'manager', 'formateur'].includes(user.role),
+      canManageEstablishments: ['super_admin', 'admin'].includes(user.role),
+      canManageAllEstablishments: user.role === 'super_admin',
+      canViewAnalytics: ['super_admin', 'admin', 'manager'].includes(user.role),
+      canManageSystem: user.role === 'super_admin',
+      canCreateUsers: ['super_admin', 'admin'].includes(user.role),
+      canEditProfile: true,
+      canAccessHelp: true,
+      canCollaborate: ['super_admin', 'admin', 'manager', 'formateur', 'apprenant'].includes(user.role)
+    };
+    
+    res.json(permissions);
+  } catch (error) {
+    console.error("Permissions error:", error);
+    res.status(500).json({ message: "Erreur lors de la récupération des permissions" });
   }
 });
 
