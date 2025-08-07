@@ -46,7 +46,17 @@ router.post('/login', async (req: any, res) => {
   try {
     const { email, password } = loginSchema.parse(req.body);
     
-    const user = await storage.getUserByEmail(email);
+    // For auth routes, we'll search across all establishments
+    // First, let's get all establishments to search across them
+    const establishments = await storage.getAllEstablishments();
+    let user = null;
+    
+    // Search for user across all establishments
+    for (const establishment of establishments) {
+      user = await storage.getUserByEmail(email, establishment.id);
+      if (user) break;
+    }
+    
     if (!user) {
       return res.status(401).json({ message: "Email ou mot de passe incorrect" });
     }
@@ -84,8 +94,13 @@ router.post('/register', async (req: any, res) => {
       return res.status(400).json({ message: "Email et mot de passe requis" });
     }
     
-    // Check if user already exists
-    const existingUser = await storage.getUserByEmail(userData.email);
+    // Check if user already exists - need to check across establishments
+    // For registration, we should require establishmentId in the request
+    if (!userData.establishmentId) {
+      return res.status(400).json({ message: "Establishment ID requis" });
+    }
+    
+    const existingUser = await storage.getUserByEmail(userData.email, userData.establishmentId);
     if (existingUser) {
       return res.status(400).json({ message: "Un utilisateur avec cet email existe déjà" });
     }

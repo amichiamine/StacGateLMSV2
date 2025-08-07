@@ -83,6 +83,8 @@ export interface IStorage {
   getEstablishmentBySlug(slug: string): Promise<Establishment | undefined>;
   createEstablishment(establishment: InsertEstablishment): Promise<Establishment>;
   getAllEstablishments(): Promise<Establishment[]>;
+  getEstablishments(): Promise<Establishment[]>;
+  updateEstablishment(id: string, updates: Partial<InsertEstablishment>): Promise<Establishment | undefined>;
   
   // User operations
   getUser(id: string): Promise<User | undefined>;
@@ -94,6 +96,7 @@ export interface IStorage {
   updateUserLastLogin(userId: string): Promise<void>;
   getUsersByEstablishment(establishmentId: string): Promise<User[]>;
   getAllUsers(): Promise<User[]>;
+  getUsers(): Promise<User[]>;
   
   // Replit Auth operations
   upsertUser(user: UpsertUser): Promise<User>;
@@ -190,8 +193,25 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(establishments).where(eq(establishments.isActive, true));
   }
 
+  async getEstablishments(): Promise<Establishment[]> {
+    return await db.select().from(establishments).where(eq(establishments.isActive, true));
+  }
+
+  async updateEstablishment(id: string, updates: Partial<InsertEstablishment>): Promise<Establishment | undefined> {
+    const [establishment] = await db
+      .update(establishments)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(establishments.id, id))
+      .returning();
+    return establishment;
+  }
+
   // Get all users (for super admin purposes)
   async getAllUsers(): Promise<User[]> {
+    return await db.select().from(users);
+  }
+
+  async getUsers(): Promise<User[]> {
     return await db.select().from(users);
   }
 

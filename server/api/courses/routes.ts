@@ -10,7 +10,7 @@ router.get('/', async (req, res) => {
   try {
     const { establishmentId, category } = req.query;
     
-    let courses;
+    let courses: any[] = [];
     if (establishmentId && category) {
       courses = await storage.getCoursesByCategory(category as string, establishmentId as string);
     } else if (establishmentId) {
