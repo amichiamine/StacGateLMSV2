@@ -8,7 +8,14 @@ window.addEventListener('unhandledrejection', (event) => {
   // Prevent for common network/auth errors but allow real errors to surface
   if (event.reason instanceof Error) {
     const message = event.reason.message.toLowerCase();
-    if (message.includes('fetch') || message.includes('401') || message.includes('unauthorized')) {
+    const isNetworkError = message.includes('fetch') || 
+                          message.includes('network') ||
+                          message.includes('failed to fetch');
+    const isAuthError = message.includes('401') || 
+                       message.includes('unauthorized') ||
+                       message.includes('non authentifié');
+    
+    if (isNetworkError || isAuthError) {
       event.preventDefault();
     }
   }

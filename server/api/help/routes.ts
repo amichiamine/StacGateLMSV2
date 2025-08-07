@@ -29,19 +29,42 @@ router.get('/', async (req, res) => {
 
 // Get help content by ID
 router.get('/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    
-    const content = await helpService.getHelpContentById(id);
-    if (!content) {
-      return res.status(404).json({ error: 'Help content not found' });
+  const { id } = req.params;
+  
+  // Use static data for now since help_contents table doesn't exist
+  const staticHelpContents = [
+    {
+      id: 'getting-started',
+      title: 'Guide de démarrage',
+      content: 'Bienvenue dans StacGate LMS! Ce guide vous aidera à commencer avec la plateforme.',
+      category: 'general',
+      targetRoles: ['apprenant', 'formateur', 'admin', 'super_admin'],
+      order: 1
+    },
+    {
+      id: 'navigation',
+      title: 'Navigation',
+      content: 'Comment naviguer dans la plateforme et accéder aux différentes fonctionnalités.',
+      category: 'general',
+      targetRoles: ['apprenant', 'formateur', 'admin', 'super_admin'],
+      order: 2
+    },
+    {
+      id: 'courses',
+      title: 'Gestion des cours',
+      content: 'Comment créer, modifier et gérer vos cours sur la plateforme.',
+      category: 'courses',
+      targetRoles: ['formateur', 'admin', 'super_admin'],
+      order: 3
     }
-    
-    res.json(content);
-  } catch (error) {
-    console.error('Error fetching help content:', error);
-    res.status(500).json({ error: 'Failed to fetch help content' });
+  ];
+  
+  const content = staticHelpContents.find(item => item.id === id);
+  if (!content) {
+    return res.status(404).json({ error: 'Help content not found' });
   }
+  
+  res.json(content);
 });
 
 // Search help content
@@ -111,6 +134,46 @@ router.delete('/:id', async (req, res) => {
     console.error('Error deleting help content:', error);
     res.status(500).json({ error: 'Failed to delete help content' });
   }
+});
+
+// Additional route for documentation endpoint compatibility
+router.get('/documentation/help', async (req, res) => {
+  const { role } = req.query;
+  
+  // Return basic help structure for now (no database dependency)
+  const helpContents = [
+    {
+      id: 'getting-started',
+      title: 'Guide de démarrage',
+      content: 'Bienvenue dans StacGate LMS! Ce guide vous aidera à commencer.',
+      category: 'general',
+      targetRoles: ['apprenant', 'formateur', 'admin', 'super_admin'],
+      order: 1
+    },
+    {
+      id: 'navigation',
+      title: 'Navigation',
+      content: 'Comment naviguer dans la plateforme et accéder aux différentes fonctionnalités.',
+      category: 'general',
+      targetRoles: ['apprenant', 'formateur', 'admin', 'super_admin'],
+      order: 2
+    },
+    {
+      id: 'courses',
+      title: 'Gestion des cours',
+      content: 'Comment créer, modifier et gérer vos cours sur la plateforme.',
+      category: 'courses',
+      targetRoles: ['formateur', 'admin', 'super_admin'],
+      order: 3
+    }
+  ];
+  
+  // Filter by role if specified
+  const filteredContents = role 
+    ? helpContents.filter(content => content.targetRoles.includes(role as string))
+    : helpContents;
+  
+  res.json(filteredContents);
 });
 
 export default router;
