@@ -1567,12 +1567,17 @@ export class DatabaseStorage implements IStorage {
       throw new Error("User or course not found");
     }
 
+    const establishmentId = user.establishmentId || course.establishmentId;
+    if (!establishmentId) {
+      throw new Error("No establishment ID found");
+    }
+
     const [certificate] = await db
       .insert(certificates)
       .values({
         userId,
         courseId,
-        establishmentId: user.establishmentId || course.establishmentId,
+        establishmentId,
         certificateNumber: `CERT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         title: `Certificate of Completion - ${course.title}`,
         description: `Certificate for completing the course: ${course.title}`,
@@ -2114,14 +2119,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createEstablishmentBranding(branding: InsertEstablishmentBranding): Promise<SelectEstablishmentBranding> {
-    const [result] = await db.insert(establishment_branding).values(branding).returning();
+    const [result] = await db.insert(establishment_branding).values([branding]).returning();
     return result;
   }
 
   async updateEstablishmentBranding(establishmentId: string, updates: Partial<InsertEstablishmentBranding>): Promise<SelectEstablishmentBranding | undefined> {
+    // Ensure types are properly cast
+    const updateData: any = { ...updates, updatedAt: new Date() };
+    
+    // Handle navigation config if present
+    if (updates.navigationConfig && typeof updates.navigationConfig === 'object') {
+      updateData.navigationConfig = updates.navigationConfig;
+    }
+    
     const [result] = await db
       .update(establishment_branding)
-      .set({ ...updates, updatedAt: new Date() })
+      .set(updateData)
       .where(eq(establishment_branding.establishmentId, establishmentId))
       .returning();
     return result;
@@ -2218,9 +2231,26 @@ export class DatabaseStorage implements IStorage {
 
   // Study Group Messages CRUD
   async createMessage(data: InsertStudyGroupMessage): Promise<StudyGroupMessageWithDetails> {
+    // Ensure metadata is properly typed
+    const messageData = {
+      ...data,
+      metadata: data.metadata ? {
+        fileName: data.metadata.fileName as string | undefined,
+        fileSize: data.metadata.fileSize as number | undefined,
+        fileUrl: data.metadata.fileUrl as string | undefined,
+        imageUrl: data.metadata.imageUrl as string | undefined,
+        linkTitle: data.metadata.linkTitle as string | undefined,
+        linkDescription: data.metadata.linkDescription as string | undefined,
+        pollOptions: data.metadata.pollOptions as string[] | undefined,
+        pollResults: data.metadata.pollResults as Record<string, number> | undefined,
+        whiteboardData: data.metadata.whiteboardData,
+        mentions: data.metadata.mentions as string[] | undefined,
+      } : null
+    };
+    
     const [message] = await db
       .insert(studyGroupMessages)
-      .values([data])
+      .values([messageData])
       .returning();
 
     // Get message with sender details
