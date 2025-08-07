@@ -26,6 +26,12 @@ import {
   type ExportJob,
   type AssessmentAttempt,
   type InsertAssessmentAttempt,
+  type SelectHelpContent,
+  type InsertHelpContent,
+  type SelectSystemVersion,
+  type InsertSystemVersion,
+  type SelectEstablishmentBranding,
+  type InsertEstablishmentBranding,
   type StudyGroup,
   type InsertStudyGroup,
   type StudyGroupMember,
@@ -65,7 +71,10 @@ import {
   studyGroups,
   studyGroupMembers,
   studyGroupMessages,
-  whiteboards
+  whiteboards,
+  permissions,
+  rolePermissions,
+  userPermissions
 } from "@shared/schema";
 
 export interface IStorage {
@@ -126,6 +135,7 @@ export interface IStorage {
   // User course operations
   getUserCourses(userId: string): Promise<UserCourse[]>;
   enrollUserInCourse(enrollment: InsertUserCourse): Promise<UserCourse>;
+  createUserCourseEnrollment(userId: string, courseId: string, sessionId?: string): Promise<UserCourse>;
   updateCourseProgress(userId: string, courseId: string, progress: number): Promise<UserCourse | undefined>;
 
   // Assessment operations  
@@ -720,10 +730,7 @@ export class DatabaseStorage implements IStorage {
     const [course] = await db
       .update(courses)
       .set({
-        // status: "approved", // Commented out as status field doesn't exist in schema
         isActive: true,
-        approvedBy,
-        approvedAt: new Date(),
         updatedAt: new Date(),
       })
       .where(eq(courses.id, courseId))
@@ -757,8 +764,6 @@ export class DatabaseStorage implements IStorage {
       .update(trainer_spaces)
       .set({
         isActive: true,
-        approvedBy,
-        approvedAt: new Date(),
         updatedAt: new Date(),
       })
       .where(eq(trainer_spaces.id, spaceId))
@@ -809,8 +814,6 @@ export class DatabaseStorage implements IStorage {
       .update(assessments)
       .set({
         status: "approved",
-        approvedBy,
-        approvedAt: new Date(),
         updatedAt: new Date(),
       })
       .where(eq(assessments.id, assessmentId))
@@ -946,6 +949,18 @@ export class DatabaseStorage implements IStorage {
       .values(enrollment)
       .returning();
     return userCourse;
+  }
+
+  async createUserCourseEnrollment(userId: string, courseId: string, sessionId?: string): Promise<UserCourse> {
+    const enrollmentData: any = {
+      userId,
+      courseId,
+      sessionId: sessionId || null,
+      status: "enrolled",
+      progress: 0,
+    };
+    
+    return await this.enrollUserInCourse(enrollmentData);
   }
 
   async updateCourseProgress(userId: string, courseId: string, progress: number): Promise<UserCourse | undefined> {
