@@ -1060,7 +1060,12 @@ export type StudyGroupWithDetails = StudyGroup & {
 };
 
 export type StudyGroupMessageWithDetails = StudyGroupMessage & {
-  sender?: User;
+  sender: {
+    id: string;
+    firstName: string | null;
+    lastName: string | null;
+    profileImageUrl: string | null;
+  };
   replyTo?: StudyGroupMessage;
   reactions?: (MessageReaction & { user?: User })[];
 };

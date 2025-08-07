@@ -2119,7 +2119,33 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createEstablishmentBranding(branding: InsertEstablishmentBranding): Promise<SelectEstablishmentBranding> {
-    const [result] = await db.insert(establishment_branding).values([branding]).returning();
+    // Type-safe creation with proper navigation config handling
+    const insertData = {
+      ...branding,
+      navigationConfig: branding.navigationConfig ? {
+        showLogo: Boolean(branding.navigationConfig.showLogo),
+        showSearch: Boolean(branding.navigationConfig.showSearch),
+        menuItems: Array.isArray(branding.navigationConfig.menuItems) 
+          ? branding.navigationConfig.menuItems.map((item: any) => ({
+              label: String(item.label || ''),
+              url: String(item.url || ''),
+              icon: String(item.icon || '')
+            }))
+          : []
+      } : null,
+      footerConfig: branding.footerConfig ? {
+        showCopyright: Boolean(branding.footerConfig.showCopyright),
+        customText: String(branding.footerConfig.customText || ''),
+        links: Array.isArray(branding.footerConfig.links)
+          ? branding.footerConfig.links.map((link: any) => ({
+              label: String(link.label || ''),
+              url: String(link.url || '')
+            }))
+          : []
+      } : null
+    };
+    
+    const [result] = await db.insert(establishment_branding).values([insertData]).returning();
     return result;
   }
 
@@ -2278,11 +2304,20 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(users, eq(studyGroupMessages.senderId, users.id))
       .where(eq(studyGroupMessages.id, message.id));
 
-    return messageWithSender as StudyGroupMessageWithDetails;
+    // Type assertion with proper sender type
+    return {
+      ...messageWithSender,
+      sender: {
+        id: messageWithSender.sender.id,
+        firstName: messageWithSender.sender.firstName,
+        lastName: messageWithSender.sender.lastName,
+        profileImageUrl: messageWithSender.sender.profileImageUrl,
+      }
+    } as StudyGroupMessageWithDetails;
   }
 
   async getStudyGroupMessages(groupId: string, limit: number = 50): Promise<StudyGroupMessageWithDetails[]> {
-    return await db
+    const messages = await db
       .select({
         id: studyGroupMessages.id,
         studyGroupId: studyGroupMessages.studyGroupId,
@@ -2310,6 +2345,17 @@ export class DatabaseStorage implements IStorage {
       ))
       .orderBy(desc(studyGroupMessages.createdAt))
       .limit(limit);
+
+    // Type-safe return with proper sender structure
+    return messages.map(message => ({
+      ...message,
+      sender: {
+        id: message.sender.id,
+        firstName: message.sender.firstName,
+        lastName: message.sender.lastName,
+        profileImageUrl: message.sender.profileImageUrl,
+      }
+    })) as StudyGroupMessageWithDetails[];
   }
 
   // Whiteboard management

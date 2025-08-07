@@ -5,9 +5,12 @@ import "./index.css";
 // Capture global unhandled rejections AVANT le rendu
 window.addEventListener('unhandledrejection', (event) => {
   console.error('Promise rejection globale:', event.reason);
-  // Only prevent for network errors, not for actual bugs
-  if (event.reason instanceof Error && event.reason.message.includes('fetch')) {
-    event.preventDefault();
+  // Prevent for common network/auth errors but allow real errors to surface
+  if (event.reason instanceof Error) {
+    const message = event.reason.message.toLowerCase();
+    if (message.includes('fetch') || message.includes('401') || message.includes('unauthorized')) {
+      event.preventDefault();
+    }
   }
 });
 
