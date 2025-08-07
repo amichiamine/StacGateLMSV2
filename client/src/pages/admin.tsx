@@ -98,12 +98,12 @@ export default function AdminPage() {
   });
 
   // Fetch establishments
-  const { data: establishments = [], isLoading: establishmentsLoading } = useQuery({
+  const { data: establishments = [], isLoading: establishmentsLoading } = useQuery<any[]>({
     queryKey: ["/api/admin/establishments"],
   });
 
   // Fetch users
-  const { data: users = [], isLoading: usersLoading } = useQuery({
+  const { data: users = [], isLoading: usersLoading } = useQuery<any[]>({
     queryKey: ["/api/admin/users"],
   });
 
@@ -383,10 +383,10 @@ export default function AdminPage() {
 
   // Filter data by selected establishment
   const filteredUsers = selectedEstablishment 
-    ? (users || []).filter((user) => user.establishmentId === selectedEstablishment)
+    ? (users || []).filter((user: any) => user.establishmentId === selectedEstablishment)
     : (users || []);
 
-  const selectedEstablishmentData = (establishments || []).find((est) => est.id === selectedEstablishment);
+  const selectedEstablishmentData = (establishments || []).find((est: any) => est.id === selectedEstablishment);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
@@ -451,7 +451,7 @@ export default function AdminPage() {
                 <SelectValue placeholder="Sélectionner un établissement" />
               </SelectTrigger>
               <SelectContent>
-                {(establishments || []).map((establishment) => (
+                {(establishments || []).map((establishment: any) => (
                   <SelectItem key={establishment.id} value={establishment.id}>
                     {establishment.name}
                   </SelectItem>
@@ -540,7 +540,7 @@ export default function AdminPage() {
               </CardHeader>
               <CardContent>
                 <div className="grid gap-4">
-                  {(establishments || []).map((establishment) => (
+                  {(establishments || []).map((establishment: any) => (
                     <div key={establishment.id} className="flex items-center justify-between p-4 border rounded-lg">
                       <div>
                         <h3 className="font-medium">{establishment.name}</h3>
@@ -873,7 +873,7 @@ export default function AdminPage() {
                                 <SelectValue placeholder="Choisir un établissement" />
                               </SelectTrigger>
                               <SelectContent>
-                                {(establishments || []).map((establishment) => (
+                                {(establishments || []).map((establishment: any) => (
                                   <SelectItem key={establishment.id} value={establishment.id}>
                                     {establishment.name}
                                   </SelectItem>

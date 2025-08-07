@@ -38,39 +38,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     path: '/ws/collaboration' // Specific path for our WebSocket
   });
 
-  wss.on('connection', (ws: WebSocket) => {
+  // Import and initialize collaboration manager
+  const { CollaborationManager } = await import('./websocket/collaborationManager');
+  const collaborationManager = new CollaborationManager();
+
+  wss.on('connection', (ws: WebSocket, request) => {
     console.log('New WebSocket connection on /ws/collaboration');
+    
+    // Extract user info from query parameters or headers
+    const url = new URL(request.url!, `http://${request.headers.host}`);
+    const userId = url.searchParams.get('userId');
+    const userName = url.searchParams.get('userName') || 'Unknown User';
+    const userRole = url.searchParams.get('userRole') || 'apprenant';
+    const establishmentId = url.searchParams.get('establishmentId') || 'default';
+
+    if (!userId) {
+      ws.send(JSON.stringify({
+        type: 'error',
+        data: { error: 'userId parameter is required', timestamp: new Date().toISOString() }
+      }));
+      ws.close();
+      return;
+    }
+
+    // Add user to collaboration system
+    collaborationManager.addUser(ws, {
+      id: userId,
+      name: userName,
+      role: userRole,
+      establishmentId: establishmentId
+    });
     
     ws.on('message', (message: string) => {
       try {
         const data = JSON.parse(message.toString());
-        console.log('Received collaboration data:', data);
+        console.log('Received collaboration message:', data.type, data.roomId || 'no-room');
         
-        // Broadcast to all connected clients
-        wss.clients.forEach(client => {
-          if (client !== ws && client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify({
-              type: 'broadcast',
-              data: data,
-              timestamp: new Date().toISOString()
-            }));
-          }
-        });
+        // Handle different types of collaboration messages
+        collaborationManager.handleCollaborationMessage(ws, data);
+        
       } catch (error) {
         console.error('WebSocket message error:', error);
+        ws.send(JSON.stringify({
+          type: 'error',
+          data: { error: 'Invalid message format', timestamp: new Date().toISOString() }
+        }));
       }
     });
     
     ws.on('close', () => {
       console.log('WebSocket connection closed');
+      collaborationManager.removeUser(ws);
     });
 
-    // Send welcome message
-    ws.send(JSON.stringify({
-      type: 'connected',
-      message: 'Connected to StacGate LMS collaboration server',
-      timestamp: new Date().toISOString()
-    }));
+    ws.on('error', (error) => {
+      console.error('WebSocket error:', error);
+      collaborationManager.removeUser(ws);
+    });
+  });
+
+  // Add collaboration stats endpoint
+  app.get('/api/collaboration/stats', (req, res) => {
+    try {
+      const stats = collaborationManager.getSystemStats();
+      res.json(stats);
+    } catch (error) {
+      console.error('Error getting collaboration stats:', error);
+      res.status(500).json({ error: 'Failed to get collaboration stats' });
+    }
+  });
+
+  // Add room stats endpoint
+  app.get('/api/collaboration/rooms/:roomId', (req, res) => {
+    try {
+      const { roomId } = req.params;
+      const stats = collaborationManager.getRoomStats(roomId);
+      
+      if (!stats) {
+        return res.status(404).json({ error: 'Room not found' });
+      }
+      
+      res.json(stats);
+    } catch (error) {
+      console.error('Error getting room stats:', error);
+      res.status(500).json({ error: 'Failed to get room stats' });
+    }
   });
 
   return server;

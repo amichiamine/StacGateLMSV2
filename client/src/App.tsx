@@ -20,6 +20,8 @@ import ArchiveExportPage from "@/pages/archive-export";
 import SystemUpdatesPage from "@/pages/system-updates";
 import WysiwygEditorPage from "@/pages/wysiwyg-editor";
 import StudyGroupsPage from "@/pages/study-groups";
+import AnalyticsPage from "@/pages/analytics";
+import HelpCenterPage from "@/pages/help-center";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -40,6 +42,8 @@ function Router() {
       <Route path="/system-updates" component={SystemUpdatesPage} />
       <Route path="/wysiwyg-editor" component={WysiwygEditorPage} />
       <Route path="/study-groups" component={StudyGroupsPage} />
+      <Route path="/analytics" component={AnalyticsPage} />
+      <Route path="/help-center" component={HelpCenterPage} />
       <Route component={NotFound} />
     </Switch>
   );

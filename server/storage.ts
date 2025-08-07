@@ -44,7 +44,7 @@ import {
   type InsertWhiteboard
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, asc, sql } from "drizzle-orm";
+import { eq, and, or, desc, asc, sql, inArray, count, gte, lte, between } from "drizzle-orm";
 import { 
   establishments, 
   users, 
@@ -167,6 +167,78 @@ export interface IStorage {
   createCustomizablePage(page: any): Promise<any>;
   updateCustomizablePage(id: string, updates: any): Promise<any>;
   getPageComponents(establishmentId: string): Promise<any[]>;
+
+  // Additional user operations
+  getUserById(id: string): Promise<User | undefined>;
+
+  // Advanced course operations
+  getCoursesWithFilters(filters: any): Promise<{ courses: any[], total: number, page: number, totalPages: number }>;
+  getPopularCourses(establishmentId: string, limit: number): Promise<any[]>;
+  getCourseStats(courseId: string): Promise<any | null>;
+  globalSearch(query: string, type: string | undefined, establishmentId: string, limit: number): Promise<any>;
+  completeCourse(userId: string, courseId: string): Promise<UserCourse | undefined>;
+
+  // Certificate operations
+  generateCourseCertificate(userId: string, courseId: string): Promise<any>;
+  getUserCertificates(userId: string): Promise<any[]>;
+
+  // Export and notification operations
+  createBulkExport(establishmentId: string, exportType: string, filters: any, createdBy: string): Promise<any>;
+  getExportHistory(establishmentId: string, limit?: number): Promise<any[]>;
+  createNotification(notificationData: InsertNotification): Promise<Notification>;
+
+  // Dashboard operations
+  getDashboardStats(userId: string, establishmentId: string): Promise<any>;
+  getDashboardWidgets(userId: string, role: string, establishmentId: string): Promise<any[]>;
+
+  // Assessment operations
+  createAssessmentAttempt(insertAttempt: InsertAssessmentAttempt): Promise<AssessmentAttempt>;
+  submitAssessmentAttempt(attemptId: string, answers: any, score: number): Promise<AssessmentAttempt | undefined>;
+
+  // Activity logging
+  logActivity(establishmentId: string, userId: string, action: string, details: any): Promise<any>;
+  
+  // Batch operations
+  batchEnrollUsers(courseId: string, userIds: string[]): Promise<any[]>;
+
+  // Analytics operations
+  getEstablishmentAnalytics(establishmentId: string, dateRange?: { from: Date; to: Date }): Promise<any>;
+  getExportTemplates(establishmentId: string): Promise<any[]>;
+
+  // Help content operations
+  getHelpContents(establishmentId: string, role?: string, category?: string): Promise<SelectHelpContent[]>;
+  getHelpContentById(id: string): Promise<SelectHelpContent | undefined>;
+  searchHelpContent(establishmentId: string, query: string, role?: string): Promise<SelectHelpContent[]>;
+  createHelpContent(content: InsertHelpContent): Promise<SelectHelpContent>;
+  updateHelpContent(id: string, updates: Partial<InsertHelpContent>): Promise<SelectHelpContent | undefined>;
+  deleteHelpContent(id: string): Promise<void>;
+
+  // System version operations
+  getSystemVersions(): Promise<SelectSystemVersion[]>;
+  getActiveSystemVersion(): Promise<SelectSystemVersion | undefined>;
+  createSystemVersion(version: InsertSystemVersion): Promise<SelectSystemVersion>;
+  activateSystemVersion(id: string): Promise<void>;
+  getMaintenanceStatus(): Promise<{ isMaintenance: boolean; message?: string }>;
+  setMaintenanceMode(enabled: boolean, message?: string): Promise<void>;
+
+  // Establishment branding operations
+  getEstablishmentBranding(establishmentId: string): Promise<SelectEstablishmentBranding | undefined>;
+  createEstablishmentBranding(branding: InsertEstablishmentBranding): Promise<SelectEstablishmentBranding>;
+  updateEstablishmentBranding(establishmentId: string, updates: Partial<InsertEstablishmentBranding>): Promise<SelectEstablishmentBranding | undefined>;
+
+  // Study group operations
+  createStudyGroup(data: InsertStudyGroup): Promise<StudyGroup>;
+  getStudyGroupsByEstablishment(establishmentId: string): Promise<StudyGroupWithDetails[]>;
+  getStudyGroupById(groupId: string): Promise<StudyGroupWithDetails | null>;
+  joinStudyGroup(groupId: string, userId: string): Promise<StudyGroupMember>;
+  getStudyGroupMembers(groupId: string): Promise<any[]>;
+  createMessage(data: InsertStudyGroupMessage): Promise<StudyGroupMessageWithDetails>;
+  getStudyGroupMessages(groupId: string, limit?: number): Promise<StudyGroupMessageWithDetails[]>;
+
+  // Whiteboard operations
+  createWhiteboard(data: InsertWhiteboard): Promise<Whiteboard>;
+  getStudyGroupWhiteboards(groupId: string): Promise<Whiteboard[]>;
+  updateWhiteboard(whiteboardId: string, data: any): Promise<Whiteboard>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1008,26 +1080,9 @@ export class DatabaseStorage implements IStorage {
     return userCourse;
   }
 
-  // Assessment operations
-  async getAssessment(id: string): Promise<Assessment | undefined> {
-    const [assessment] = await db.select().from(assessments).where(eq(assessments.id, id));
-    return assessment;
-  }
+  // Assessment operations - duplicates removed (already defined above)
 
-  async getAssessmentsByEstablishment(establishmentId: string): Promise<Assessment[]> {
-    return await db
-      .select()
-      .from(assessments)
-      .where(eq(assessments.establishmentId, establishmentId));
-  }
-
-  async createAssessment(insertAssessment: InsertAssessment): Promise<Assessment> {
-    const [assessment] = await db
-      .insert(assessments)
-      .values(insertAssessment)
-      .returning();
-    return assessment;
-  }
+  // createAssessment already defined above - removing duplicate
 
   async getUserAssessmentAttempts(userId: string, assessmentId?: string): Promise<any[]> {
     // For now, return empty array - full implementation would query assessment_attempts table
@@ -1045,63 +1100,7 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  // Dashboard statistics methods
-  async getDashboardStats(userId: string, role: string, establishmentId: string): Promise<any> {
-    const stats: any = {};
-
-    switch (role) {
-      case 'super_admin':
-        const [estCount] = await db.select({ count: sql<number>`count(*)` }).from(establishments);
-        const [userCount] = await db.select({ count: sql<number>`count(*)` }).from(users);
-        const [courseCount] = await db.select({ count: sql<number>`count(*)` }).from(courses);
-        const [assessmentCount] = await db.select({ count: sql<number>`count(*)` }).from(assessments);
-        
-        stats.totalEstablishments = estCount.count;
-        stats.totalUsers = userCount.count;
-        stats.totalCourses = courseCount.count;
-        stats.totalAssessments = assessmentCount.count;
-        break;
-      
-      case 'admin':
-      case 'manager':
-        const [estUsers] = await db.select({ count: sql<number>`count(*)` })
-          .from(users).where(eq(users.establishmentId, establishmentId));
-        const [estCourses] = await db.select({ count: sql<number>`count(*)` })
-          .from(courses).where(eq(courses.establishmentId, establishmentId));
-        const [estAssessments] = await db.select({ count: sql<number>`count(*)` })
-          .from(assessments).where(eq(assessments.establishmentId, establishmentId));
-        const [pendingAssess] = await db.select({ count: sql<number>`count(*)` })
-          .from(assessments).where(and(eq(assessments.establishmentId, establishmentId), eq(assessments.status, 'pending_approval')));
-        
-        stats.establishmentUsers = estUsers.count;
-        stats.establishmentCourses = estCourses.count;
-        stats.establishmentAssessments = estAssessments.count;
-        stats.pendingAssessments = pendingAssess.count;
-        break;
-      
-      case 'formateur':
-        const [myCourses] = await db.select({ count: sql<number>`count(*)` })
-          .from(courses).where(and(eq(courses.establishmentId, establishmentId), eq(courses.instructorId, userId)));
-        const [myAssessments] = await db.select({ count: sql<number>`count(*)` })
-          .from(assessments).where(and(eq(assessments.establishmentId, establishmentId), eq(assessments.createdBy, userId)));
-        
-        stats.myCourses = myCourses.count;
-        stats.myAssessments = myAssessments.count;
-        break;
-      
-      case 'apprenant':
-        const [enrolled] = await db.select({ count: sql<number>`count(*)` })
-          .from(user_courses).where(eq(user_courses.userId, userId));
-        const [completed] = await db.select({ count: sql<number>`count(*)` })
-          .from(assessment_attempts).where(and(eq(assessment_attempts.userId, userId), eq(assessment_attempts.status, 'completed')));
-        
-        stats.enrolledCourses = enrolled.count;
-        stats.completedAssessments = completed.count;
-        break;
-    }
-
-    return stats;
-  }
+  // Dashboard statistics methods - duplicate removed (already defined above)
 
   async getDashboardWidgets(userId: string, role: string, establishmentId: string): Promise<any[]> {
     const widgets: any[] = [];
@@ -1213,21 +1212,22 @@ export class DatabaseStorage implements IStorage {
       conditions.push(eq(courses.instructorId, filters.instructor));
     }
 
-    let query = db.select().from(courses).where(and(...conditions));
-
-    // Apply sorting
-    if (filters.sortBy === 'title') {
-      query = filters.sortOrder === 'asc' ? query.orderBy(asc(courses.title)) : query.orderBy(desc(courses.title));
-    } else if (filters.sortBy === 'createdAt') {
-      query = filters.sortOrder === 'asc' ? query.orderBy(asc(courses.createdAt)) : query.orderBy(desc(courses.createdAt));
-    }
-
     // Get total count for pagination
     const [{ count: total }] = await db.select({ count: sql<number>`count(*)` }).from(courses).where(and(...conditions));
 
+    // Build query with sorting and pagination
+    let queryBuilder = db.select().from(courses).where(and(...conditions));
+
+    // Apply sorting
+    if (filters.sortBy === 'title') {
+      queryBuilder = queryBuilder.orderBy(filters.sortOrder === 'asc' ? asc(courses.title) : desc(courses.title));
+    } else if (filters.sortBy === 'createdAt') {
+      queryBuilder = queryBuilder.orderBy(filters.sortOrder === 'asc' ? asc(courses.createdAt) : desc(courses.createdAt));
+    }
+
     // Apply pagination
     const offset = (filters.page - 1) * filters.limit;
-    const coursesList = await query.limit(filters.limit).offset(offset);
+    const coursesList = await queryBuilder.limit(filters.limit).offset(offset);
 
     return {
       courses: coursesList,
@@ -1570,9 +1570,9 @@ export class DatabaseStorage implements IStorage {
     const [certificate] = await db
       .insert(certificates)
       .values({
-        userId: userId,
-        courseId: courseId,
-        establishmentId: user.establishmentId,
+        userId,
+        courseId,
+        establishmentId: user.establishmentId || course.establishmentId,
         certificateNumber: `CERT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         title: `Certificate of Completion - ${course.title}`,
         description: `Certificate for completing the course: ${course.title}`,
@@ -1867,54 +1867,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // ===== WYSIWYG ET PAGES PERSONNALISABLES =====
-
-  async getCustomizablePages(establishmentId: string): Promise<any[]> {
-    return await db
-      .select()
-      .from(customizable_pages)
-      .where(eq(customizable_pages.establishmentId, establishmentId))
-      .orderBy(customizable_pages.pageName);
-  }
-
-  async getCustomizablePageByName(establishmentId: string, pageName: string): Promise<any> {
-    const [page] = await db
-      .select()
-      .from(customizable_pages)
-      .where(and(
-        eq(customizable_pages.establishmentId, establishmentId),
-        eq(customizable_pages.pageName, pageName)
-      ));
-    return page;
-  }
-
-  async createCustomizablePage(pageData: any): Promise<any> {
-    const [page] = await db
-      .insert(customizable_pages)
-      .values({
-        ...pageData,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .returning();
-    return page;
-  }
-
-  async updateCustomizablePage(pageId: string, updates: any): Promise<any> {
-    const [page] = await db
-      .update(customizable_pages)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(customizable_pages.id, pageId))
-      .returning();
-    return page;
-  }
-
-  async getPageComponents(establishmentId: string): Promise<any[]> {
-    return await db
-      .select()
-      .from(page_components)
-      .where(eq(page_components.establishmentId, establishmentId))
-      .orderBy(page_components.componentType, page_components.componentName);
-  }
+  // (Functions already defined above - removing duplicates)
 
   // System activity logging (merged with logSystemActivity)
   async logActivity(establishmentId: string, userId: string, action: string, details: any): Promise<any> {

@@ -28,12 +28,12 @@ export default function Dashboard() {
   const { toast } = useToast();
 
   // Récupérer les vraies données pour les statistiques avec types corrects
-  const { data: courses = [] } = useQuery({
+  const { data: courses = [] } = useQuery<any[]>({
     queryKey: ['/api/courses'],
     enabled: isAuthenticated
   });
 
-  const { data: users = [] } = useQuery({
+  const { data: users = [] } = useQuery<any[]>({
     queryKey: ['/api/users'],
     enabled: isAuthenticated && (user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'manager')
   });
@@ -88,7 +88,7 @@ export default function Dashboard() {
                   Tableau de bord
                 </h1>
                 <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 hidden sm:block">
-                  Bienvenue, {user?.firstName} {user?.lastName} • {courses?.length || 0} cours disponibles
+                  Bienvenue, {user?.firstName} {user?.lastName} • {Array.isArray(courses) ? courses.length : 0} cours disponibles
                 </p>
               </div>
             </div>
@@ -209,7 +209,7 @@ export default function Dashboard() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{courses?.length || 0}</div>
+              <div className="text-2xl font-bold text-blue-600">{Array.isArray(courses) ? courses.length : 0}</div>
               <p className="text-xs text-muted-foreground">
                 Formations actives
               </p>
@@ -317,7 +317,7 @@ export default function Dashboard() {
                   <p>Aucun cours disponible</p>
                 </div>
               )}
-              {courses.length > 3 && (
+              {Array.isArray(courses) && courses.length > 3 && (
                 <Button 
                   variant="outline" 
                   className="w-full mt-4"
