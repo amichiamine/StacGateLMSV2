@@ -1,558 +1,364 @@
-# INVENTAIRE EXHAUSTIF FRONTEND - StacGateLMS
+# INVENTAIRE EXHAUSTIF FRONTEND - PHP StacGateLMS
 
-## ARCHITECTURE GÉNÉRALE FRONTEND
+## ANALYSE STRUCTURELLE FRONTEND
 
-### Structure des dossiers
+### 📁 ARCHITECTURE DES DOSSIERS
 ```
-client/
-├── src/
-│   ├── components/          # Composants réutilisables
-│   │   ├── ui/             # Composants UI Shadcn/ui (50+ composants)
-│   │   ├── wysiwyg/        # Éditeur WYSIWYG (5 composants)
-│   │   └── [composants métier] # Composants spécifiques application
-│   ├── pages/              # Pages de l'application (20 pages)
-│   ├── hooks/              # Hooks personnalisés (5 hooks)
-│   ├── lib/                # Utilitaires et configuration
-│   ├── main.tsx            # Point d'entrée React
-│   ├── App.tsx             # Configuration routage et providers
-│   └── index.css           # Styles globaux et thème Glassmorphism
-├── index.html              # Template HTML principal
-└── [config files]         # Configuration build et types
+php-migration/
+├── assets/css/                      # Ressources CSS
+├── includes/                        # Composants partagés (header/footer)
+├── pages/                           # Pages principales
+├── uploads/                         # Uploads utilisateurs (à créer)
+├── cache/                           # Cache système (à créer)
+└── logs/                           # Logs système (à créer)
 ```
 
-### Technologies Frontend
-- **Framework**: React 18 avec TypeScript
-- **Build Tool**: Vite avec plugins Replit
-- **Routage**: Wouter (route-based)
-- **État Global**: TanStack Query v5 pour data fetching
-- **Styling**: Tailwind CSS + Glassmorphism custom
-- **UI Components**: Shadcn/ui (système de design complet)
-- **Forms**: React Hook Form + Zod validation
-- **Icons**: Lucide React + React Icons
-- **Themes**: Support dark/light avec variables CSS
-
-## PAGES DE L'APPLICATION (20 pages)
-
-### 1. Pages Publiques
-#### `/` - Home (home.tsx)
-- **Composants principaux**: Navigation, HeroSection, FeaturesSection, PopularCoursesSection, Footer
-- **Fonctionnalités**: Landing page avec glassmorphism, présentation plateforme
-- **Boutons**: "Commencer", "En savoir plus", navigation mobile
-- **Imports**: Navigation, composants section, Lucide icons
-
-#### `/portal` - Portal (portal.tsx)
-- **Composants**: Sélecteur d'établissement, PortalCustomization
-- **Fonctionnalités**: Multi-tenant, sélection établissement avec personnalisation
-- **État**: Establishments query, customization query
-- **Imports**: PortalCustomization, useQuery, Card components
-
-#### `/establishment/:slug` - Establishment (establishment.tsx)  
-- **Composants**: Navigation personnalisée, contenu dynamique
-- **Fonctionnalités**: Page établissement personnalisable avec thème
-- **État**: Establishment data, custom content
-- **Imports**: Navigation, établissement service
-
-#### `/login` - Login (login.tsx)
-- **Composants**: Tabs (connexion/inscription), formulaires avec validation
-- **Fonctionnalités**: Authentification, inscription, sélection établissement
-- **État**: Forms states, establishments query, loading states
-- **Imports**: Tabs, Input, Select, useToast, useQuery
-- **Formulaires**: Email/password, establishment selection
-
-### 2. Pages Authentifiées
-
-#### `/dashboard` - Dashboard (dashboard.tsx)
-- **Composants**: Navigation, Cards statistiques, Avatars, Badges
-- **Fonctionnalités**: Tableau de bord role-based, statistiques temps réel
-- **État**: User auth, courses data, users data (selon rôle)
-- **Imports**: useAuth, useQuery, Navigation, Card components
-- **Sections**: Header glassmorphism, stats cards, quick actions
-- **Boutons**: Refresh session, navigation rapide, actions selon rôle
-
-#### `/courses` - Courses (courses.tsx)
-- **Composants**: Course cards, filters, modals, tabs
-- **Fonctionnalités**: Gestion cours complète, création, inscription
-- **État**: Courses query, filters, create modal, enrollment
-- **Imports**: Dialog, Tabs, Badge, useAuth, apiRequest
-- **Formulaires**: Création cours, filtres, recherche
-- **Boutons**: Créer cours, s'inscrire, voir détails, filtres
-
-#### `/admin` - Admin (admin.tsx)
-- **Composants**: Tabs multiples, formulaires complexes, PageEditor
-- **Fonctionnalités**: Administration complète (thèmes, contenus, menus, utilisateurs)
-- **État**: Multiple query states, forms states, modals
-- **Imports**: Tabs, Input, Textarea, Select, PageEditor, apiRequest
-- **Sections**:
-  - Gestion établissements
-  - Gestion thèmes  
-  - Personnalisation contenus
-  - Gestion menus
-  - Gestion utilisateurs
-  - WYSIWYG Editor
-- **Formulaires**: 6+ formulaires complexes avec validation
-
-#### `/super-admin` - Super Admin (super-admin.tsx)
-- **Composants**: Portal customization, système administration
-- **Fonctionnalités**: Administration globale multi-tenant
-- **État**: Global settings, portal themes, system stats
-- **Imports**: PortalCustomization, admin components
-- **Sections**: Configuration globale, thèmes portail, établissements
-
-#### `/user-management` - User Management (user-management.tsx)
-- **Composants**: Tables utilisateurs, modals, filtres
-- **Fonctionnalités**: CRUD utilisateurs, rôles, permissions
-- **État**: Users query, filters, create/edit modals
-- **Imports**: Table, Dialog, Select, Badge components
-- **Boutons**: Créer utilisateur, éditer, supprimer, filtres rôles
-
-#### `/analytics` - Analytics (analytics.tsx)
-- **Composants**: Charts (Recharts), metrics cards, date pickers
-- **Fonctionnalités**: Dashboard analytique temps réel
-- **État**: Analytics data query, date ranges, filters
-- **Imports**: Recharts, Card, Calendar, date-fns
-- **Sections**:
-  - Métriques générales
-  - Graphiques cours populaires  
-  - Activités récentes
-  - Stats utilisateurs
-- **Graphiques**: BarChart, PieChart, LineChart, AreaChart
-
-#### `/assessments` - Assessments (assessments.tsx)
-- **Composants**: Assessment cards, creation forms, attempt tracking
-- **Fonctionnalités**: Gestion évaluations, quiz, examens
-- **État**: Assessments query, attempts data, create forms
-- **Imports**: Card, Dialog, Progress, Badge
-- **Boutons**: Créer évaluation, passer test, voir résultats
-
-#### `/study-groups` - Study Groups (study-groups.tsx)
-- **Composants**: Group cards, chat interface, member management
-- **Fonctionnalités**: Groupes d'étude, collaboration, chat temps réel
-- **État**: Groups data, chat messages, member states
-- **Imports**: Card, Avatar, Button, collaboration hooks
-- **Sections**: Liste groupes, chat interface, gestion membres
-
-#### `/help-center` - Help Center (help-center.tsx)
-- **Composants**: Search bar, category filters, documentation cards
-- **Fonctionnalités**: Centre aide avec recherche et filtres
-- **État**: Help articles query, search state, filters
-- **Imports**: Input, Card, Badge, search components
-- **Sections**: Recherche, catégories, articles, FAQ
-
-### 3. Pages Spécialisées
-
-#### `/wysiwyg-editor` - WYSIWYG Editor (wysiwyg-editor.tsx)
-- **Composants**: PageEditor, ComponentLibrary, Preview
-- **Fonctionnalités**: Éditeur visuel pages personnalisées
-- **État**: Page data, component library, preview mode
-- **Imports**: WYSIWYG components, editor utilities
-
-#### `/archive-export` - Archive Export (archive-export.tsx)
-- **Composants**: Export forms, progress bars, download links
-- **Fonctionnalités**: Export données, archives, backup
-- **État**: Export jobs, progress tracking, file management
-- **Imports**: Progress, Button, Select, file utilities
-
-#### `/system-updates` - System Updates (system-updates.tsx)
-- **Composants**: Update cards, version info, changelog
-- **Fonctionnalités**: Gestion mises à jour système
-- **État**: Updates data, version tracking, deployment status
-- **Imports**: Card, Badge, version components
-
-#### `/user-manual` - User Manual (user-manual.tsx)
-- **Composants**: Manual navigation, content display, search
-- **Fonctionnalités**: Manuel utilisateur intégré
-- **État**: Manual content, navigation state, search
-- **Imports**: Navigation, content display components
-
-#### `/not-found` - Not Found (not-found.tsx)
-- **Composants**: Error display, navigation back
-- **Fonctionnalités**: Page 404 personnalisée
-- **Boutons**: Retour accueil, navigation
-
-## COMPOSANTS RÉUTILISABLES
-
-### Composants Métier (8 composants)
-
-#### Navigation (navigation.tsx)
-- **Fonctionnalités**: Navigation responsive avec glassmorphism
-- **État**: Mobile menu toggle
-- **Éléments**:
-  - Logo StacGateLMS avec gradient
-  - Menu desktop (Cours, À propos, Contact)
-  - Boutons Connexion/Commencer  
-  - Menu mobile hamburger avec glassmorphism
-  - Overlay mobile avec backdrop blur
-- **Imports**: Link (wouter), Button, Lucide icons
-- **Styles**: Glass navigation, mobile glass menu
-
-#### CollaborationIndicator (CollaborationIndicator.tsx)
-- **Fonctionnalités**: Indicateur collaboration temps réel
-- **État**: Collaboration status, participants count
-- **Éléments**: Badge status, participant avatars, activity indicator
-- **Imports**: useCollaboration, Avatar, Badge
-
-#### PortalCustomization (PortalCustomization.tsx)
-- **Fonctionnalités**: Personnalisation portail établissements
-- **État**: Theme settings, content customization
-- **Éléments**: Color pickers, content editors, preview
-- **Imports**: Color components, form controls
-
-#### HeroSection (hero-section.tsx)
-- **Fonctionnalités**: Section hero avec glassmorphism
-- **Éléments**: Titre principal, sous-titre, CTA buttons
-- **Styles**: Gradient backgrounds, glass effects
-
-#### FeaturesSection (features-section.tsx)
-- **Fonctionnalités**: Présentation fonctionnalités
-- **Éléments**: Feature cards avec icons, descriptions
-- **Imports**: Lucide icons, Card components
-
-#### PopularCoursesSection (popular-courses-section.tsx)
-- **Fonctionnalités**: Cours populaires homepage
-- **État**: Popular courses query
-- **Éléments**: Course cards, ratings, enrollment counts
-
-#### Footer (footer.tsx)
-- **Fonctionnalités**: Footer site avec liens
-- **Éléments**: Copyright, liens légaux, réseaux sociaux
-- **Styles**: Glassmorphism footer
-
-### Composants WYSIWYG (5 composants)
-
-#### PageEditor (wysiwyg/PageEditor.tsx)
-- **Fonctionnalités**: Éditeur pages principal
-- **État**: Page content, component selection, preview mode
-- **Éléments**: Toolbar, canvas, properties panel
-- **Imports**: ComponentLibrary, PagePreview
-
-#### ComponentLibrary (wysiwyg/ComponentLibrary.tsx)
-- **Fonctionnalités**: Bibliothèque composants disponibles
-- **État**: Component categories, search, filters
-- **Éléments**: Component palette, drag/drop interface
-
-#### ComponentEditor (wysiwyg/ComponentEditor.tsx)
-- **Fonctionnalités**: Éditeur propriétés composants
-- **État**: Selected component, properties
-- **Éléments**: Properties form, style editor
-
-#### PagePreview (wysiwyg/PagePreview.tsx)
-- **Fonctionnalités**: Aperçu temps réel page
-- **État**: Preview mode, responsive testing
-- **Éléments**: Preview iframe, device simulation
-
-#### ColorPicker (wysiwyg/ColorPicker.tsx)
-- **Fonctionnalités**: Sélecteur couleurs
-- **État**: Color values, palette
-- **Éléments**: Color wheel, palette, inputs
-
-### Composants UI Shadcn/ui (50+ composants)
-
-#### Layout & Navigation
-- **accordion.tsx**: Composant accordéon extensible
-- **breadcrumb.tsx**: Navigation breadcrumb
-- **menubar.tsx**: Barre menu horizontal
-- **navigation-menu.tsx**: Menu navigation complexe
-- **pagination.tsx**: Pagination données
-- **sidebar.tsx**: Barre latérale
-- **tabs.tsx**: Système onglets
-
-#### Forms & Inputs
-- **button.tsx**: Boutons avec variants
-- **input.tsx**: Champs saisie
-- **textarea.tsx**: Zone texte multiligne
-- **label.tsx**: Labels formulaires
-- **form.tsx**: Wrapper formulaires avec validation
-- **checkbox.tsx**: Cases à cocher
-- **radio-group.tsx**: Groupes radio
-- **select.tsx**: Listes déroulantes
-- **slider.tsx**: Sliders valeurs
-- **switch.tsx**: Interrupteurs
-- **input-otp.tsx**: Saisie codes OTP
-- **calendar.tsx**: Sélecteur dates
-
-#### Display & Feedback
-- **card.tsx**: Cartes contenu
-- **badge.tsx**: Badges statut
-- **avatar.tsx**: Avatars utilisateurs
-- **alert.tsx**: Alertes système
-- **toast.tsx**: Notifications toast
-- **toaster.tsx**: Gestionnaire toasts
-- **progress.tsx**: Barres progression
-- **skeleton.tsx**: Squelettes chargement
-- **table.tsx**: Tableaux données
-
-#### Overlays & Modals
-- **dialog.tsx**: Dialogues/modals
-- **alert-dialog.tsx**: Dialogues confirmation
-- **sheet.tsx**: Panneaux latéraux
-- **drawer.tsx**: Tiroirs mobiles
-- **popover.tsx**: Popovers
-- **hover-card.tsx**: Cartes survol
-- **tooltip.tsx**: Info-bulles
-- **context-menu.tsx**: Menus contextuels
-- **dropdown-menu.tsx**: Menus déroulants
-
-#### Layout & Utilities
-- **separator.tsx**: Séparateurs visuels
-- **scroll-area.tsx**: Zones défilement
-- **resizable.tsx**: Panneaux redimensionnables
-- **aspect-ratio.tsx**: Ratios d'aspect
-- **collapsible.tsx**: Éléments pliables
-- **toggle.tsx**: Boutons bascule
-- **toggle-group.tsx**: Groupes bascule
-
-#### Specialized
-- **chart.tsx**: Composants graphiques
-- **carousel.tsx**: Carrousels images
-
-## HOOKS PERSONNALISÉS (5 hooks)
-
-### useAuth (useAuth.ts)
-- **Fonctionnalités**: Gestion authentification utilisateur
-- **État**: user, isLoading, isAuthenticated, establishment
-- **Méthodes**: login, logout, register, refreshUser
-- **Imports**: useQuery, queryClient, authUtils
-
-### useCollaboration (useCollaboration.ts)
-- **Fonctionnalités**: Collaboration temps réel WebSocket
-- **État**: connection, rooms, participants, messages
-- **Méthodes**: joinRoom, leaveRoom, sendMessage, handleCursor
-- **Imports**: WebSocket utilities, message types
-
-### useTheme (useTheme.ts)
-- **Fonctionnalités**: Gestion thèmes dark/light
-- **État**: theme, isDark, isLight
-- **Méthodes**: setTheme, toggleTheme, setDark, setLight
-- **Imports**: localStorage, CSS variables
-
-### useToast (use-toast.ts)
-- **Fonctionnalités**: Système notifications toast
-- **État**: toasts array, toast methods
-- **Méthodes**: toast, dismiss, update
-- **Imports**: Toast reducer, timer utilities
-
-### useMobile (use-mobile.tsx)
-- **Fonctionnalités**: Détection écrans mobiles
-- **État**: isMobile boolean
-- **Méthodes**: Media query responsive
-- **Imports**: useEffect, useState, media queries
-
-## LIBRAIRIES ET UTILITAIRES
-
-### Lib (lib/)
-
-#### queryClient.ts
-- **Fonctionnalités**: Configuration TanStack Query
-- **Exports**: queryClient, apiRequest helper
-- **Configuration**: Cache policies, error handling, retries
-
-#### authUtils.ts
-- **Fonctionnalités**: Utilitaires authentification
-- **Exports**: Token management, role checking, permissions
-- **Méthodes**: hasRole, hasPermission, getToken
-
-#### utils.ts
-- **Fonctionnalités**: Utilitaires généraux
-- **Exports**: cn (className utility), formatters, validators
-- **Imports**: clsx, tailwind-merge
-
-## ROUTING ET NAVIGATION
-
-### App.tsx - Configuration routage
-```typescript
-Routes configurées (wouter):
-- "/"              → Home
-- "/portal"        → Portal  
-- "/establishment/:slug" → Establishment
-- "/login"         → Login
-- "/dashboard"     → Dashboard
-- "/admin"         → AdminPage
-- "/super-admin"   → SuperAdminPage
-- "/user-management" → UserManagement
-- "/courses"       → CoursesPage
-- "/assessments"   → AssessmentsPage
-- "/manual"        → UserManualPage
-- "/archive"       → ArchiveExportPage
-- "/system-updates" → SystemUpdatesPage
-- "/wysiwyg-editor" → WysiwygEditorPage
-- "/study-groups"  → StudyGroupsPage
-- "/analytics"     → AnalyticsPage
-- "/help-center"   → HelpCenterPage
-- default          → NotFound
-```
-
-### Providers Configuration
-- **QueryClientProvider**: TanStack Query setup
-- **TooltipProvider**: Tooltips globaux
-- **Toaster**: Notifications système
-
-## THÈMES ET STYLING
-
-### index.css - Thème Glassmorphism
-```css
-Variables principales:
-- --glass-bg: rgba(255, 255, 255, 0.1)
-- --glass-border: rgba(255, 255, 255, 0.2)  
-- --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37)
-- --blur-strength: 10px
-- --border-radius: 1rem
-
-Couleurs système:
-- --color-primary: 139 92 246 (#8B5CF6)
-- --color-secondary: 167 139 250 (#A78BFA)
-- --color-accent: 196 181 253 (#C4B5FD)
-
-Classes utilitaires:
-- .glassmorphism: Effet verre principal
-- .glass-nav: Navigation glassmorphism
-- .glass-mobile-menu: Menu mobile glassmorphism
-
-Thèmes disponibles:
-- .theme-purple: Thème violet (défaut)
-- .theme-blue: Thème bleu
-- .theme-green: Thème vert
-
-Support dark mode:
-- Variables CSS adaptatives
-- Classes .dark avec couleurs alternatives
-```
-
-### Tailwind Configuration
-- **Colors**: Variables CSS personnalisées
-- **Fonts**: Inter font family
-- **Animations**: Tailwind CSS animate
-- **Plugins**: Typography, forms, etc.
-
-## GESTION D'ÉTAT ET DATA
-
-### TanStack Query Configuration
-- **Cache**: 5 minutes par défaut
-- **Retries**: 3 tentatives
-- **Background refetch**: Activé
-- **Error boundaries**: Configurées
-
-### Query Keys Pattern
-```typescript
-Exemples:
-- ['/api/courses'] - Liste cours
-- ['/api/courses', courseId] - Cours spécifique
-- ['/api/users'] - Liste utilisateurs
-- ['/api/analytics', dateRange] - Analytics avec paramètres
-- ['/api/establishments'] - Établissements
-```
-
-### API Integration
-- **Base URL**: `/api` (proxy Vite)
-- **Authentication**: Cookies HTTP-only
-- **Error handling**: Global error boundaries
-- **Loading states**: Par query
-- **Optimistic updates**: Sur mutations
-
-## FORMULAIRES ET VALIDATION
-
-### React Hook Form Integration
-- **Resolver**: Zod validation
-- **Error handling**: Field-level errors
-- **Submission**: apiRequest helper
-- **Reset**: Form reset after success
-
-### Zod Schemas
-- **Shared schemas**: Import from shared/schema.ts
-- **Frontend extensions**: .extend() pour validation UI
-- **Error messages**: Français localisé
-
-## RESPONSIVE DESIGN
-
-### Breakpoints Tailwind
-- **sm**: 640px - Small tablets
-- **md**: 768px - Tablets  
-- **lg**: 1024px - Small laptops
-- **xl**: 1280px - Large screens
-
-### Mobile-First Approach
-- **Base**: Mobile layout par défaut
-- **Progressive enhancement**: Ajout fonctionnalités desktop
-- **Touch-friendly**: Boutons taille minimum 44px
-- **Navigation**: Menu hamburger mobile avec glassmorphism
-
-## ICÔNES ET ASSETS
-
-### Lucide React Icons (100+ icons utilisés)
-```typescript
-Navigation: Menu, X, Home, Settings
-Actions: Plus, Trash2, Save, RefreshCw  
-Content: BookOpen, FileText, Image, Video
-Users: User, Users, Shield, Award
-Interface: Calendar, Clock, Search, Star
-Status: TrendingUp, AlertCircle, CheckCircle
-```
-
-### React Icons (SI)
-- **Company logos**: GitHub, Google, Microsoft, etc.
-- **Social media**: Twitter, LinkedIn, Facebook
-
-## PERFORMANCE ET OPTIMISATION
-
-### Code Splitting
-- **Route-based**: Pages chargées à la demande
-- **Component-based**: Composants lourds lazy loadés
-- **Dynamic imports**: Fonctionnalités optionnelles
-
-### Memoization
-- **useMemo**: Calculs coûteux
-- **useCallback**: Fonctions dans deps
-- **React.memo**: Composants purs
-
-### Bundle Optimization
-- **Tree shaking**: Imports spécifiques
-- **Chunk splitting**: Vendors séparés
-- **Asset optimization**: Images optimisées
-
-## ACCESSIBILITÉ
-
-### ARIA Support
-- **Labels**: aria-label sur composants interactifs
-- **Descriptions**: aria-describedby pour contexte
-- **States**: aria-expanded, aria-selected
-- **Roles**: button, dialog, menu, etc.
-
-### Keyboard Navigation
-- **Tab order**: Navigation logique
-- **Escape**: Fermeture modals
-- **Enter/Space**: Activation boutons
-- **Arrow keys**: Navigation listes
-
-### Screen Reader Support
-- **Semantic HTML**: Utilisation balises appropriées
-- **Headings**: Hiérarchie h1-h6
-- **Alt text**: Images descriptives
-- **Form labels**: Association explicite
-
-## TESTS ET DEBUGGING
-
-### Data Test IDs
-```typescript
-Pattern: {action}-{target}
-Exemples:
-- "button-submit"
-- "input-email"  
-- "link-profile"
-- "card-course-123"
-- "row-user-456"
-```
-
-### Error Boundaries
-- **Global**: Capture erreurs React
-- **Query errors**: TanStack Query error handling
-- **Toast notifications**: Retour utilisateur
-- **Console logging**: Debug développement
-
-## INTERNATIONALISATION
-
-### Préparation i18n
-- **Strings**: Externalisables
-- **Date formats**: date-fns configuré
-- **Number formats**: Localisé français
-- **RTL support**: CSS préparé
-
-Cette documentation constitue l'inventaire exhaustif du frontend, couvrant tous les composants, pages, hooks, utilitaires et configurations de l'application StacGateLMS.
+### 🎨 SYSTÈME CSS & THÈMES
+
+#### **assets/css/glassmorphism.css** (558 lignes)
+- **Variables CSS dynamiques** : 35 variables personnalisables
+- **Couleurs principales** : --color-primary, --color-secondary, --color-accent
+- **Effets glassmorphism** : --glass-bg, --glass-border, --glass-shadow, --glass-backdrop
+- **Gradients** : --gradient-primary, --gradient-secondary, --gradient-glass
+- **Mode sombre** : .dark avec redéfinition variables
+- **Classes utilitaires** : 45+ classes (.glassmorphism, .glass-card, .glass-button, etc.)
+- **Grid responsive** : .grid-2, .grid-3, .grid-4 avec auto-fit
+- **Animations** : @keyframes fadeIn, slideIn + classes .animate-fade-in
+- **Responsive** : @media queries pour mobile/tablet
+
+#### **Composants CSS Glassmorphism**
+1. `.glassmorphism` - Conteneur principal avec blur
+2. `.glass-nav` - Navigation transparente  
+3. `.glass-card` - Cartes avec hover effects
+4. `.glass-button` - Boutons avec animations
+5. `.glass-input` - Champs de saisie transparents
+6. `.badge` - Badges colorés par statut
+7. `.hero-section` - Section d'accueil
+8. `.nav-menu` - Menu de navigation
+9. `.mobile-menu` - Menu mobile overlay
+
+### 📱 COMPOSANTS PARTAGÉS
+
+#### **includes/header.php** (400+ lignes)
+**Variables PHP disponibles** :
+- `$currentUser` - Utilisateur connecté
+- `$isAuthenticated` - État connexion
+- `$currentEstablishment` - Établissement actuel  
+- `$activeTheme` - Thème personnalisé
+- `$csrfToken` - Token sécurité
+- `$flashMessage` - Messages temporaires
+
+**Navigation adaptative** :
+- Menu public : Accueil, Établissements, Connexion
+- Menu apprenant : Dashboard, Cours, Groupes, Aide
+- Menu formateur : + Évaluations, Groupes d'étude
+- Menu manager : + Analytics, Gestion utilisateurs
+- Menu admin : + Administration
+- Menu super_admin : + Super Admin, Système
+
+**Menu utilisateur dropdown** :
+- Profil avec avatar/initiales
+- Nom + rôle + établissement
+- Centre d'aide
+- Toggle thème dark/light
+- Déconnexion
+
+**JavaScript intégré** :
+- `toggleMobileMenu()` - Menu mobile
+- `toggleUserMenu()` - Dropdown utilisateur
+- `toggleTheme()` - Mode sombre
+- `apiRequest()` - Requêtes AJAX avec CSRF
+- `showToast()` - Notifications
+- Gestion cookies thème
+
+#### **includes/footer.php** (200+ lignes)
+**Sections footer** :
+- Logo + description app
+- Navigation rapide selon rôle
+- Support et aide
+- Informations système (PHP, DB, établissement)
+- Copyright + liens légaux
+
+**JavaScript footer** :
+- `updateTime()` - Horloge temps réel
+- Smooth scroll pour ancres
+- `animateOnScroll()` - Animations intersection
+- Validation formulaires globale
+- Auto-resize textareas
+- Confirmation actions destructrices
+
+### 📄 PAGES PRINCIPALES
+
+#### **pages/home.php** (300+ lignes)
+**Sections** :
+1. **Hero Section** - Titre + sous-titre + CTA buttons
+2. **Statistiques** - 3 cards avec métriques (établissements, cours, support)
+3. **Fonctionnalités** - 6 cards avec icônes SVG :
+   - Multi-tenant
+   - Design glassmorphism  
+   - Analytics temps réel
+   - Évaluations avancées
+   - Collaboration
+   - Éditeur WYSIWYG
+4. **Cours populaires** - Grid avec données dynamiques
+5. **CTA final** - Section engagement
+
+**Éléments interactifs** :
+- Boutons CTA vers /portal et /login
+- Cards hover effects
+- Animations séquentielles
+- Responsive grid
+
+#### **pages/login.php** (400+ lignes)
+**Formulaires** :
+1. **Connexion** :
+   - Sélecteur établissement (dropdown)
+   - Email + mot de passe
+   - Case "Se souvenir"
+   - Lien mot de passe oublié
+   
+2. **Inscription** :
+   - Sélecteur établissement
+   - Prénom + nom (grid 2 colonnes)
+   - Email + mot de passe + confirmation
+   - Checkbox conditions d'utilisation
+
+**JavaScript** :
+- `switchTab()` - Toggle login/register
+- `togglePassword()` - Visibilité mot de passe
+- Validation temps réel mots de passe
+- Validation côté client
+
+**Validation PHP** :
+- POST action='login' / action='register'
+- Validator::make() avec règles
+- Gestion erreurs + messages success
+- Authentification via AuthService
+
+#### **pages/dashboard.php** (500+ lignes)
+**Structure adaptative selon rôle** :
+
+**Header commun** :
+- Message de bienvenue personnalisé
+- Badge de rôle coloré
+- Nom établissement
+
+**Métriques rapides** (grid-4) :
+- Utilisateurs total/apprenants
+- Cours disponibles  
+- Inscriptions
+- Actifs ce mois
+
+**Colonne gauche - contenu par rôle** :
+1. **Apprenant** :
+   - "Mes cours" avec progression
+   - Barres de progression visuelles
+   - Boutons "Continuer"
+
+2. **Formateur** :
+   - "Mes cours enseignés"
+   - Compteurs inscrits + notes
+   - Badges statut actif/inactif
+
+3. **Manager/Admin** :
+   - Analytics établissement
+   - Taux d'activité + cours actifs
+   - Lien analytics complète
+
+**Actions rapides** (grid-2 adaptée) :
+- Apprenant : Parcourir cours, Groupes étude, Aide, Actualiser
+- Formateur : Créer cours, Évaluations, Aide, Actualiser  
+- Manager+ : Gestion utilisateurs, Analytics, Aide, Actualiser
+
+**Colonne droite** :
+- Cours populaires (top 5)
+- Activités récentes (8 dernières)
+
+**JavaScript** :
+- `refreshDashboard()` - Reload complet
+- Auto-refresh 5 minutes
+- Animations progressive cards
+
+### 🔧 FONCTIONNALITÉS FRONTEND
+
+#### **Navigation & Routing**
+- Liens conditionnels selon authentification
+- Menus adaptatifs selon rôles
+- Breadcrumbs (à implémenter)
+- URLs propres (/dashboard, /courses, etc.)
+
+#### **Authentification UI**
+- Formulaires login/register
+- Validation temps réel
+- Messages erreurs/succès
+- Redirections automatiques
+- Gestion sessions
+
+#### **Thèmes & Personnalisation**  
+- Variables CSS dynamiques via PHP
+- Mode sombre/clair avec cookies
+- Thèmes par établissement
+- Couleurs personnalisables
+- Glassmorphism effects
+
+#### **Interactions JavaScript**
+- Toggle menus mobile/desktop
+- Dropdown utilisateur
+- Validation formulaires
+- Requêtes AJAX avec apiRequest()
+- Notifications toast
+- Animations scroll
+
+#### **Responsive Design**
+- Mobile-first approche
+- Breakpoints : 768px, 480px
+- Grid adaptatives
+- Menu mobile overlay
+- Touch-friendly boutons
+
+### 📊 COMPOSANTS VISUELS
+
+#### **Cards & Containers**
+- `.glass-card` - Cartes principales
+- `.glassmorphism` - Conteneurs blur
+- `.hero-section` - Section accueil
+- `.nav-container` - Conteneur navigation
+
+#### **Boutons & Interactions**
+- `.glass-button` - Bouton principal
+- `.glass-button-secondary` - Bouton secondaire  
+- `.tab-button` - Onglets formulaires
+- Hover effects + transitions
+
+#### **Formulaires**
+- `.glass-input` - Champs transparents
+- `.form-group` - Groupes de champs
+- `.form-label` - Labels
+- `.form-error` - Messages erreur
+
+#### **Badges & Status**
+- `.badge` - Badge par défaut
+- `.badge-success` - Vert
+- `.badge-warning` - Orange
+- `.badge-error` - Rouge
+
+#### **Layout & Grid**
+- `.container` - Conteneur principal
+- `.grid` - Grid de base
+- `.grid-2/3/4` - Grids spécifiques
+- Responsive avec auto-fit
+
+### 🎯 ÉLÉMENTS INTERACTIFS
+
+#### **Menus & Navigation**
+1. Menu principal adaptatif selon rôle
+2. Menu mobile hamburger
+3. Dropdown utilisateur
+4. Liens conditionnels
+
+#### **Formulaires**
+1. Login/register avec onglets
+2. Sélecteurs établissement
+3. Validation temps réel
+4. Messages feedback
+
+#### **Boutons d'Action**
+1. CTA hero section
+2. Actions rapides dashboard  
+3. Boutons cours (Continuer, Voir, Gérer)
+4. Toggle thème
+
+#### **Animations & Transitions**
+1. Fade-in séquentiel
+2. Hover effects cards
+3. Smooth scroll
+4. Loading states
+
+### 🔍 PAGES MANQUANTES (Référencées mais non créées)
+
+#### **Pages Publiques**
+- `/portal` - Sélecteur établissements
+- `/establishment/{slug}` - Page établissement
+- `/404` - Page erreur
+
+#### **Pages Authentifiées**
+- `/courses` - Liste/gestion cours
+- `/admin` - Administration  
+- `/super-admin` - Super administration
+- `/user-management` - Gestion utilisateurs
+- `/analytics` - Analytics détaillées
+- `/assessments` - Évaluations
+- `/study-groups` - Groupes d'étude
+- `/help-center` - Centre d'aide
+- `/wysiwyg-editor` - Éditeur WYSIWYG
+- `/archive-export` - Archives/exports
+- `/system-updates` - Mises à jour système
+- `/user-manual` - Manuel utilisateur
+
+### 📱 RESPONSIVE & MOBILE
+
+#### **Breakpoints définis** :
+- Desktop : > 768px
+- Tablet : 480px - 768px  
+- Mobile : < 480px
+
+#### **Adaptations Mobile** :
+- Navigation hamburger
+- Grid single column
+- Font sizes réduits
+- Padding ajustés
+- Touch targets 44px min
+
+### 🎨 DESIGN SYSTEM
+
+#### **Couleurs** (RGB format pour CSS vars) :
+- Primary : 139 92 246 (#8B5CF6)
+- Secondary : 167 139 250 (#A78BFA)
+- Accent : 196 181 253 (#C4B5FD)
+- Background : 255 255 255 / 17 24 39 (dark)
+- Text : 31 41 55 / 243 244 246 (dark)
+
+#### **Typography** :
+- Font family : Inter + fallbacks
+- Font sizes : 16px base + rem scaling
+- Font weights : 300-800
+
+#### **Spacing** :
+- Base unit : 1rem
+- Padding classes : p-4, p-6, p-8
+- Margin classes : mb-4, mb-6, mb-8, mt-4, mt-6, mt-8
+
+#### **Border Radius** :
+- Base : 0.5rem
+- Glass : 1rem  
+- Full : 9999px (pills)
+
+### 🔧 UTILITAIRES FRONTEND
+
+#### **Classes CSS utilitaires** :
+- Text : .text-center, .text-left, .text-right
+- Font : .font-bold, .font-semibold, .font-medium
+- Spacing : .mb-4, .mb-6, .mb-8, .mt-4, .mt-6, .mt-8
+- Padding : .p-4, .p-6, .p-8
+- Border : .rounded, .rounded-lg
+- Shadow : .shadow, .shadow-lg
+
+#### **JavaScript utilitaires** :
+- `window.apiRequest()` - Requêtes AJAX
+- `window.showToast()` - Notifications
+- `APP_CONFIG` global - Configuration
+- Event listeners globaux
+- Validation formulaires
+
+### 📋 RÉSUMÉ COMPTEURS FRONTEND
+
+- **Fichiers CSS** : 1 (glassmorphism.css)
+- **Pages PHP** : 3 créées + 15 référencées = 18 total
+- **Composants partagés** : 2 (header.php, footer.php)
+- **Classes CSS** : 45+ utilitaires + composants
+- **Variables CSS** : 35 variables personnalisables
+- **Fonctions JavaScript** : 15+ fonctions utilitaires
+- **Composants UI** : 20+ types (cards, buttons, inputs, etc.)
+- **Animations** : 5 types (fade-in, slide-in, hover, etc.)
+- **Breakpoints responsive** : 3 niveaux
+- **Rôles supportés** : 5 niveaux (super_admin → apprenant)
