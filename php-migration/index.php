@@ -79,9 +79,11 @@ $router->get('/api/auth/user', 'api/auth/user.php', true);
 $router->post('/api/auth/logout', 'api/auth/logout.php', true);
 $router->get('/api/courses', 'api/courses/index.php', true);
 $router->post('/api/courses', 'api/courses/create.php', true);
+$router->get('/api/courses/show', 'api/courses/show.php', true);
 $router->get('/api/courses/{id}', 'api/courses/show.php', true);
 $router->put('/api/courses/{id}', 'api/courses/update.php', true);
 $router->delete('/api/courses/{id}', 'api/courses/delete.php', true);
+$router->post('/api/courses/enroll', 'api/courses/enroll.php', true);
 $router->post('/api/courses/{id}/enroll', 'api/courses/enroll.php', true);
 
 // Routes utilisateurs
@@ -93,6 +95,7 @@ $router->delete('/api/users/{id}', 'api/users/delete.php', true);
 
 // Routes analytics
 $router->get('/api/analytics/overview', 'api/analytics/overview.php', true);
+$router->get('/api/analytics/popular-courses', 'api/analytics/popular-courses.php', true);
 $router->get('/api/analytics/courses', 'api/analytics/courses.php', true);
 $router->get('/api/analytics/users', 'api/analytics/users.php', true);
 $router->get('/api/analytics/enrollments', 'api/analytics/enrollments.php', true);
@@ -124,6 +127,7 @@ $router->get('/api/help/search', 'api/help/search.php', true);
 $router->get('/api/system/info', 'api/system/info.php', true);
 $router->get('/api/system/health', 'api/system/health.php', true);
 $router->post('/api/system/maintenance', 'api/system/maintenance.php', true);
+$router->post('/api/system/clear-cache', 'api/system/clear-cache.php', true);
 
 // Routes establishments admin
 $router->post('/api/establishments', 'api/establishments/create.php', true);
