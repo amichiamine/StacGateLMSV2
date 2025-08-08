@@ -52,6 +52,29 @@ class AuthService {
     }
     
     /**
+     * Obtenir un utilisateur par email
+     */
+    public function getUserByEmail($email, $establishmentId = null) {
+        try {
+            $whereClause = "email = :email AND is_active = " . (IS_POSTGRESQL ? 'TRUE' : '1');
+            $params = ['email' => $email];
+            
+            if ($establishmentId) {
+                $whereClause .= " AND establishment_id = :establishment_id";
+                $params['establishment_id'] = $establishmentId;
+            }
+            
+            return $this->db->selectOne(
+                "SELECT * FROM users WHERE {$whereClause}",
+                $params
+            );
+        } catch (Exception $e) {
+            Utils::log("Get user by email error: " . $e->getMessage(), 'ERROR');
+            return null;
+        }
+    }
+    
+    /**
      * Créer un nouvel utilisateur
      */
     public function createUser($userData) {

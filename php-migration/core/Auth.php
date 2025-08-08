@@ -11,6 +11,10 @@ class Auth {
         return isset($_SESSION['user_id']) && $_SESSION['user_id'] > 0;
     }
     
+    public static function check() {
+        return self::isAuthenticated();
+    }
+    
     public static function user() {
         if (self::$currentUser === null && self::isAuthenticated()) {
             $db = Database::getInstance();
@@ -23,7 +27,7 @@ class Auth {
     public static function login($email, $password, $establishmentId = null) {
         $db = Database::getInstance();
         
-        // Préparer la condition WHERE
+        // Préparer la condition WHERE - search across all establishments if none specified
         $whereCondition = 'email = ? AND is_active = 1';
         $params = [$email];
         
@@ -35,6 +39,9 @@ class Auth {
         $user = $db->selectOne('users', '*', $whereCondition, $params);
         
         if ($user && password_verify($password, $user['password'])) {
+            // Regenerate session ID for security
+            session_regenerate_id(true);
+            
             // Créer la session
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['user_email'] = $user['email'];

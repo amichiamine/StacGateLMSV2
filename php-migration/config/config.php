@@ -75,9 +75,11 @@ date_default_timezone_set('Europe/Paris');
 if (session_status() == PHP_SESSION_NONE) {
     ini_set('session.cookie_lifetime', SESSION_LIFETIME);
     ini_set('session.cookie_httponly', 1);
-    ini_set('session.cookie_secure', isset($_SERVER['HTTPS']));
+    ini_set('session.cookie_secure', false); // Set to false for development, true for production with HTTPS
     ini_set('session.cookie_samesite', 'Lax');
-    ini_set('session.name', 'stacgate_session');
+    ini_set('session.name', 'connect.sid'); // Match Node.js session name for consistency
+    ini_set('session.gc_maxlifetime', SESSION_LIFETIME);
+    ini_set('session.save_path', ROOT_PATH . '/cache/sessions'); // Ensure session directory exists
 }
 
 // Headers de sécurité

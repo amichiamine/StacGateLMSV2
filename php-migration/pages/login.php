@@ -25,23 +25,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
         try {
             if ($_POST['action'] === 'login') {
-                // Connexion
+                // Connexion - establishment_id is optional (search across all establishments)
                 $validator = Validator::make($_POST, [
                     'email' => 'required|email',
                     'password' => 'required',
-                    'establishment_id' => 'required|integer'
+                    'establishment_id' => 'integer' // Optional for login
                 ]);
                 
                 if ($validator->validate()) {
-                    $authService = new AuthService();
-                    $user = $authService->authenticate(
+                    // Use Auth::login instead of AuthService for session management
+                    $user = Auth::login(
                         $_POST['email'],
                         $_POST['password'],
-                        $_POST['establishment_id']
+                        $_POST['establishment_id'] ?? null
                     );
                     
                     if ($user) {
-                        Router::redirect('/dashboard');
+                        // Success - redirect will happen via JavaScript to avoid headers already sent issues
+                        $successMessage = "Connexion réussie ! Redirection...";
+                        echo "<script>setTimeout(() => window.location.href = '/php-migration/dashboard', 500);</script>";
                     } else {
                         $errors[] = "Email ou mot de passe incorrect";
                     }
@@ -72,16 +74,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $errors[] = "Un compte avec cet email existe déjà";
                         } else {
                             try {
-                                $user = $authService->createUser([
+                                $userData = [
                                     'first_name' => $_POST['first_name'],
                                     'last_name' => $_POST['last_name'],
                                     'email' => $_POST['email'],
                                     'password' => $_POST['password'],
                                     'establishment_id' => $_POST['establishment_id'],
                                     'role' => 'apprenant'
-                                ]);
+                                ];
                                 
-                                $successMessage = "Compte créé avec succès ! Vous pouvez maintenant vous connecter.";
+                                $user = $authService->createUser($userData);
+                                
+                                if ($user) {
+                                    // Auto-login after successful registration
+                                    Auth::login($_POST['email'], $_POST['password'], $_POST['establishment_id']);
+                                    $successMessage = "Compte créé avec succès ! Redirection...";
+                                    echo "<script>setTimeout(() => window.location.href = '/php-migration/dashboard', 500);</script>";
+                                } else {
+                                    $errors[] = "Erreur lors de la création du compte";
+                                }
                             } catch (Exception $e) {
                                 $errors[] = "Erreur lors de la création du compte : " . $e->getMessage();
                             }
