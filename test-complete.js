@@ -60,10 +60,11 @@ class PlatformTester {
                 method: 'POST',
                 body: JSON.stringify({
                     email: `test-${Date.now()}@stacgate.fr`,
+                    username: `testuser${Date.now()}`,
                     password: 'password123',
-                    first_name: 'Test',
-                    last_name: 'User',
-                    establishment_id: 'est-001-main',
+                    firstName: 'Test',
+                    lastName: 'User',
+                    establishmentId: 'est-001-main',
                     role: 'apprenant'
                 }),
                 headers: { 'Content-Type': 'application/json' }
