@@ -67,6 +67,7 @@ $router->get('/super-admin', 'pages/super-admin.php', true);
 $router->get('/user-management', 'pages/user-management.php', true);
 $router->get('/analytics', 'pages/analytics.php', true);
 $router->get('/assessments', 'pages/assessments.php', true);
+$router->get('/system-monitoring', 'pages/system-monitoring.php', true);
 $router->get('/study-groups', 'pages/study-groups.php', true);
 $router->get('/help-center', 'pages/help-center.php', true);
 $router->get('/wysiwyg-editor', 'pages/wysiwyg-editor.php', true);
@@ -131,6 +132,9 @@ $router->post('/api/help', 'api/help/index.php', true);
 $router->get('/api/users/profile', 'api/users/profile.php', true);
 $router->put('/api/users/profile', 'api/users/profile.php', true);
 $router->post('/api/users/profile', 'api/users/profile.php', true);
+$router->post('/api/users', 'api/users/create.php', true);
+$router->put('/api/users/{id}', 'api/users/update.php', true);
+$router->delete('/api/users/{id}', 'api/users/delete.php', true);
 
 // Routes study groups supplémentaires
 $router->post('/api/study-groups/join', 'api/study-groups/join.php', true);
@@ -140,11 +144,13 @@ $router->delete('/api/study-groups/join', 'api/study-groups/join.php', true);
 $router->post('/api/system/clear-cache', 'api/system/clear-cache.php', true);
 $router->get('/api/system/info', 'api/system/info.php', true);
 $router->get('/api/system/health', 'api/system/health.php', true);
+$router->get('/api/system/stats', 'api/system/stats.php', true);
 
 // Routes exports
 $router->get('/api/exports', 'api/exports/index.php', true);
 $router->post('/api/exports', 'api/exports/create.php', true);
 $router->get('/api/exports/{id}/download', 'api/exports/download.php', true);
+$router->post('/api/exports/reports', 'api/exports/reports.php', true);
 
 // Routes help
 $router->get('/api/help/contents', 'api/help/index.php', true);

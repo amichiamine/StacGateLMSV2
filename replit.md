@@ -7,6 +7,8 @@ IntraSphere is a modern, flexible Learning Management System (LMS) designed to p
 - Approche méthodique et systématique pour les corrections
 - Traitement point par point des problèmes identifiés
 - Documentation détaillée des actions correctives
+- Analysis conducted in French with focus on code structure
+- Comprehensive inventories serving as complete migration reference base
 
 ## System Architecture
 IntraSphere is built with a modern, modular architecture organized by business domains to enhance maintainability and scalability.
