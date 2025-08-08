@@ -1,37 +1,81 @@
 <?php
 /**
- * Page centre de notifications
+ * Page Notifications
+ * Centre de notifications et messages
  */
 
 // Vérifier l'authentification
 Auth::requireAuth();
 
 $pageTitle = "Notifications - StacGateLMS";
-$pageDescription = "Centre de notifications et alertes.";
+$pageDescription = "Centre de notifications et messages de la plateforme.";
 
 $currentUser = Auth::user();
-$establishmentId = $currentUser['establishment_id'];
 
 // Initialiser les services
 $notificationService = new NotificationService();
 
-// Obtenir les notifications
+// Paramètres
+$page = intval($_GET['page'] ?? 1);
+$perPage = 20;
+$filter = $_GET['filter'] ?? 'all'; // all, unread, read, system, user
+$category = $_GET['category'] ?? '';
+
+// Traitement des actions
+$action = $_POST['action'] ?? '';
+$message = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && validateCSRFToken($_POST['_token'] ?? '')) {
+    try {
+        switch ($action) {
+            case 'mark_read':
+                $notificationId = intval($_POST['notification_id']);
+                $notificationService->markAsRead($notificationId, $currentUser['id']);
+                $message = ['type' => 'success', 'text' => 'Notification marquée comme lue'];
+                break;
+                
+            case 'mark_unread':
+                $notificationId = intval($_POST['notification_id']);
+                $notificationService->markAsUnread($notificationId, $currentUser['id']);
+                $message = ['type' => 'success', 'text' => 'Notification marquée comme non lue'];
+                break;
+                
+            case 'mark_all_read':
+                $notificationService->markAllAsRead($currentUser['id']);
+                $message = ['type' => 'success', 'text' => 'Toutes les notifications marquées comme lues'];
+                break;
+                
+            case 'delete_notification':
+                $notificationId = intval($_POST['notification_id']);
+                $notificationService->deleteNotification($notificationId, $currentUser['id']);
+                $message = ['type' => 'success', 'text' => 'Notification supprimée'];
+                break;
+                
+            case 'delete_all_read':
+                $notificationService->deleteAllRead($currentUser['id']);
+                $message = ['type' => 'success', 'text' => 'Toutes les notifications lues supprimées'];
+                break;
+        }
+    } catch (Exception $e) {
+        $message = ['type' => 'error', 'text' => $e->getMessage()];
+        Utils::log("Notifications error: " . $e->getMessage(), 'ERROR');
+    }
+}
+
+// Obtenir les données
 try {
-    $page = intval($_GET['page'] ?? 1);
-    $filter = $_GET['filter'] ?? 'all'; // all, unread, read, important
+    $notificationsData = $notificationService->getUserNotifications($currentUser['id'], $page, $perPage, $filter, $category);
+    $notifications = $notificationsData['data'];
+    $meta = $notificationsData['meta'];
     
-    $filters = [];
-    if ($filter === 'unread') $filters['read'] = false;
-    if ($filter === 'read') $filters['read'] = true;
-    if ($filter === 'important') $filters['important'] = true;
-    
-    $notifications = $notificationService->getUserNotifications($currentUser['id'], $page, 20, $filters);
-    $unreadCount = $notificationService->getUnreadCount($currentUser['id']);
+    // Statistiques
+    $stats = $notificationService->getNotificationStats($currentUser['id']);
     
 } catch (Exception $e) {
     Utils::log("Notifications page error: " . $e->getMessage(), 'ERROR');
-    $notifications = ['data' => [], 'pagination' => []];
-    $unreadCount = 0;
+    $notifications = [];
+    $meta = ['total' => 0, 'current_page' => 1, 'total_pages' => 1];
+    $stats = ['total' => 0, 'unread' => 0, 'today' => 0];
 }
 
 require_once ROOT_PATH . '/includes/header.php';
@@ -44,254 +88,368 @@ require_once ROOT_PATH . '/includes/header.php';
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
                 <div>
                     <h1 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem;">
-                        Notifications
+                        🔔 Notifications
                     </h1>
                     <p style="opacity: 0.8;">
-                        <?= $unreadCount ?> notification<?= $unreadCount > 1 ? 's' : '' ?> non lue<?= $unreadCount > 1 ? 's' : '' ?>
+                        Centre de messages et notifications
                     </p>
                 </div>
-                
-                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                    <button onclick="markAllAsRead()" class="glass-button glass-button-secondary">
-                        Tout marquer comme lu
-                    </button>
-                    <button onclick="clearNotifications()" class="glass-button glass-button-secondary">
-                        Vider les notifications
-                    </button>
+                <div style="display: flex; gap: 1rem;">
+                    <?php if ($stats['unread'] > 0): ?>
+                        <form method="POST" style="display: inline;">
+                            <input type="hidden" name="_token" value="<?= generateCSRFToken() ?>">
+                            <input type="hidden" name="action" value="mark_all_read">
+                            <button type="submit" class="glass-button">
+                                ✓ Tout marquer lu
+                            </button>
+                        </form>
+                    <?php endif; ?>
+                    
+                    <form method="POST" style="display: inline;">
+                        <input type="hidden" name="_token" value="<?= generateCSRFToken() ?>">
+                        <input type="hidden" name="action" value="delete_all_read">
+                        <button type="submit" class="glass-button glass-button-secondary" 
+                                onclick="return confirm('Supprimer toutes les notifications lues ?')">
+                            🗑️ Vider lues
+                        </button>
+                    </form>
                 </div>
+            </div>
+            
+            <?php if ($message): ?>
+                <div class="message <?= $message['type'] ?>" style="margin-top: 1rem; padding: 1rem; border-radius: 8px; background: rgba(<?= $message['type'] === 'success' ? '34, 197, 94' : '239, 68, 68' ?>, 0.1); color: <?= $message['type'] === 'success' ? '#22c55e' : '#ef4444' ?>;">
+                    <?= htmlspecialchars($message['text']) ?>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <!-- Statistiques -->
+        <div class="grid grid-3 mb-8">
+            <div class="glassmorphism p-4 text-center">
+                <div style="font-size: 2rem; font-weight: 700; color: rgb(var(--color-primary));">
+                    <?= $stats['total'] ?>
+                </div>
+                <div style="opacity: 0.8;">Total</div>
+            </div>
+            <div class="glassmorphism p-4 text-center">
+                <div style="font-size: 2rem; font-weight: 700; color: rgb(var(--color-warning));">
+                    <?= $stats['unread'] ?>
+                </div>
+                <div style="opacity: 0.8;">Non lues</div>
+            </div>
+            <div class="glassmorphism p-4 text-center">
+                <div style="font-size: 2rem; font-weight: 700; color: rgb(var(--color-info));">
+                    <?= $stats['today'] ?>
+                </div>
+                <div style="opacity: 0.8;">Aujourd'hui</div>
             </div>
         </div>
 
         <!-- Filtres -->
         <div class="glassmorphism p-4 mb-6">
-            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                <a href="?filter=all" class="filter-btn <?= $filter === 'all' ? 'active' : '' ?>">
-                    Toutes
-                </a>
-                <a href="?filter=unread" class="filter-btn <?= $filter === 'unread' ? 'active' : '' ?>">
-                    Non lues (<?= $unreadCount ?>)
-                </a>
-                <a href="?filter=read" class="filter-btn <?= $filter === 'read' ? 'active' : '' ?>">
-                    Lues
-                </a>
-                <a href="?filter=important" class="filter-btn <?= $filter === 'important' ? 'active' : '' ?>">
-                    Importantes
-                </a>
+            <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                <div style="display: flex; gap: 0.5rem;">
+                    <a href="?filter=all" 
+                       class="filter-btn <?= $filter === 'all' ? 'active' : '' ?>"
+                       style="padding: 0.5rem 1rem; border-radius: 20px; text-decoration: none; transition: all 0.3s; <?= $filter === 'all' ? 'background: rgba(var(--color-primary), 0.1); color: rgb(var(--color-primary));' : 'background: rgba(255,255,255,0.05);' ?>">
+                        Toutes (<?= $stats['total'] ?>)
+                    </a>
+                    <a href="?filter=unread" 
+                       class="filter-btn <?= $filter === 'unread' ? 'active' : '' ?>"
+                       style="padding: 0.5rem 1rem; border-radius: 20px; text-decoration: none; transition: all 0.3s; <?= $filter === 'unread' ? 'background: rgba(var(--color-warning), 0.1); color: rgb(var(--color-warning));' : 'background: rgba(255,255,255,0.05);' ?>">
+                        Non lues (<?= $stats['unread'] ?>)
+                    </a>
+                    <a href="?filter=read" 
+                       class="filter-btn <?= $filter === 'read' ? 'active' : '' ?>"
+                       style="padding: 0.5rem 1rem; border-radius: 20px; text-decoration: none; transition: all 0.3s; <?= $filter === 'read' ? 'background: rgba(var(--color-success), 0.1); color: rgb(var(--color-success));' : 'background: rgba(255,255,255,0.05);' ?>">
+                        Lues
+                    </a>
+                </div>
+                
+                <div style="margin-left: auto;">
+                    <form method="GET" style="display: flex; gap: 1rem;">
+                        <input type="hidden" name="filter" value="<?= htmlspecialchars($filter) ?>">
+                        <select name="category" onchange="this.form.submit()" class="glass-input" style="padding: 0.5rem 1rem;">
+                            <option value="">Toutes catégories</option>
+                            <option value="system" <?= $category === 'system' ? 'selected' : '' ?>>Système</option>
+                            <option value="course" <?= $category === 'course' ? 'selected' : '' ?>>Cours</option>
+                            <option value="assessment" <?= $category === 'assessment' ? 'selected' : '' ?>>Évaluations</option>
+                            <option value="social" <?= $category === 'social' ? 'selected' : '' ?>>Social</option>
+                            <option value="achievement" <?= $category === 'achievement' ? 'selected' : '' ?>>Succès</option>
+                        </select>
+                    </form>
+                </div>
             </div>
         </div>
 
         <!-- Liste des notifications -->
-        <div class="notifications-list">
-            <?php if (empty($notifications['data'])): ?>
-                <div class="glassmorphism p-8 text-center">
-                    <svg width="64" height="64" fill="currentColor" viewBox="0 0 24 24" style="opacity: 0.5; margin-bottom: 1rem;">
-                        <path d="M12 2A10 10 0 0 0 2 12a10 10 0 0 0 10 10a10 10 0 0 0 10-10A10 10 0 0 0 12 2z"/>
-                    </svg>
-                    <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem;">Aucune notification</h3>
-                    <p style="opacity: 0.7;">Vous n'avez aucune notification pour le moment.</p>
-                </div>
-            <?php else: ?>
-                <?php foreach ($notifications['data'] as $notification): ?>
-                    <div class="glass-card notification-item <?= !$notification['is_read'] ? 'unread' : '' ?>" 
-                         data-id="<?= $notification['id'] ?>" 
-                         style="margin-bottom: 1rem; padding: 1.5rem; cursor: pointer;">
+        <div class="glassmorphism">
+            <?php if (!empty($notifications)): ?>
+                <?php foreach ($notifications as $notification): ?>
+                    <div class="notification-item <?= !$notification['is_read'] ? 'unread' : 'read' ?>" 
+                         data-notification-id="<?= $notification['id'] ?>"
+                         style="display: flex; align-items: flex-start; gap: 1rem; padding: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); <?= !$notification['is_read'] ? 'background: rgba(var(--color-primary), 0.02);' : '' ?>">
                         
-                        <div style="display: flex; gap: 1rem;">
-                            <!-- Icône de type -->
-                            <div class="notification-icon" style="flex-shrink: 0;">
-                                <?php 
-                                $iconColor = 'rgb(var(--color-primary))';
-                                switch ($notification['type']) {
-                                    case 'course_enrollment':
-                                        $icon = '<path d="M12 14l9-5-9-5-9 5 9 5z"/><path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/>';
-                                        break;
-                                    case 'assignment_due':
-                                        $icon = '<path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>';
-                                        $iconColor = 'rgb(var(--color-accent))';
-                                        break;
-                                    case 'message':
-                                        $icon = '<path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>';
-                                        break;
-                                    case 'system':
-                                        $icon = '<path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>';
-                                        $iconColor = 'rgb(var(--color-secondary))';
-                                        break;
-                                    default:
-                                        $icon = '<path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>';
-                                }
-                                ?>
-                                <svg width="24" height="24" fill="none" stroke="<?= $iconColor ?>" viewBox="0 0 24 24" stroke-width="2">
-                                    <?= $icon ?>
-                                </svg>
+                        <!-- Icône de statut -->
+                        <div class="notification-status" style="margin-top: 0.25rem;">
+                            <?php if (!$notification['is_read']): ?>
+                                <div style="width: 8px; height: 8px; border-radius: 50%; background: rgb(var(--color-primary));"></div>
+                            <?php else: ?>
+                                <div style="width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.2);"></div>
+                            <?php endif; ?>
+                        </div>
+
+                        <!-- Icône de catégorie -->
+                        <div class="notification-icon" style="font-size: 1.5rem; margin-top: 0.25rem;">
+                            <?php
+                            $icons = [
+                                'system' => '⚙️',
+                                'course' => '📚',
+                                'assessment' => '📝',
+                                'social' => '👥',
+                                'achievement' => '🏆',
+                                'message' => '💬',
+                                'warning' => '⚠️',
+                                'info' => 'ℹ️'
+                            ];
+                            echo $icons[$notification['category']] ?? '🔔';
+                            ?>
+                        </div>
+
+                        <!-- Contenu -->
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                                <h3 style="font-size: 1.1rem; font-weight: 600; margin: 0; <?= !$notification['is_read'] ? 'color: rgb(var(--color-primary));' : '' ?>">
+                                    <?= htmlspecialchars($notification['title']) ?>
+                                </h3>
+                                <div style="display: flex; gap: 0.5rem; margin-left: 1rem;">
+                                    <span style="font-size: 0.8rem; opacity: 0.7; white-space: nowrap;">
+                                        <?= Utils::timeAgo($notification['created_at']) ?>
+                                    </span>
+                                </div>
                             </div>
                             
-                            <!-- Contenu -->
-                            <div style="flex: 1; min-width: 0;">
-                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
-                                    <h3 style="font-weight: 600; margin: 0;">
-                                        <?= htmlspecialchars($notification['title']) ?>
-                                    </h3>
-                                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0;">
-                                        <?php if ($notification['is_important']): ?>
-                                            <svg width="16" height="16" fill="rgb(var(--color-accent))" viewBox="0 0 24 24">
-                                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                                            </svg>
-                                        <?php endif; ?>
-                                        <small style="opacity: 0.7; white-space: nowrap;">
-                                            <?= Utils::timeAgo($notification['created_at']) ?>
-                                        </small>
-                                    </div>
-                                </div>
-                                
-                                <p style="margin: 0; opacity: 0.8; line-height: 1.5;">
-                                    <?= htmlspecialchars($notification['message']) ?>
-                                </p>
-                                
-                                <?php if ($notification['action_url']): ?>
-                                    <div style="margin-top: 1rem;">
+                            <p style="margin: 0 0 1rem 0; opacity: 0.8; line-height: 1.5;">
+                                <?= htmlspecialchars($notification['message']) ?>
+                            </p>
+                            
+                            <!-- Métadonnées -->
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="display: flex; gap: 1rem; align-items: center;">
+                                    <span class="notification-category" style="font-size: 0.8rem; padding: 0.25rem 0.75rem; background: rgba(var(--color-<?= $notification['category'] === 'system' ? 'info' : ($notification['category'] === 'warning' ? 'warning' : 'primary') ?>), 0.1); color: rgb(var(--color-<?= $notification['category'] === 'system' ? 'info' : ($notification['category'] === 'warning' ? 'warning' : 'primary') ?>)); border-radius: 12px;">
+                                        <?= ucfirst($notification['category']) ?>
+                                    </span>
+                                    
+                                    <?php if (!empty($notification['action_url'])): ?>
                                         <a href="<?= htmlspecialchars($notification['action_url']) ?>" 
                                            class="glass-button glass-button-secondary" 
-                                           style="padding: 0.5rem 1rem; font-size: 0.9rem;">
-                                            <?= htmlspecialchars($notification['action_text'] ?? 'Voir') ?>
+                                           style="padding: 0.25rem 0.75rem; font-size: 0.8rem;">
+                                            Voir
                                         </a>
-                                    </div>
-                                <?php endif; ?>
+                                    <?php endif; ?>
+                                </div>
+                                
+                                <!-- Actions -->
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <form method="POST" style="display: inline;">
+                                        <input type="hidden" name="_token" value="<?= generateCSRFToken() ?>">
+                                        <input type="hidden" name="notification_id" value="<?= $notification['id'] ?>">
+                                        <input type="hidden" name="action" value="<?= $notification['is_read'] ? 'mark_unread' : 'mark_read' ?>">
+                                        <button type="submit" 
+                                                class="action-btn" 
+                                                style="background: none; border: none; color: inherit; opacity: 0.6; cursor: pointer; padding: 0.25rem;" 
+                                                title="<?= $notification['is_read'] ? 'Marquer comme non lu' : 'Marquer comme lu' ?>">
+                                            <?= $notification['is_read'] ? '👁️' : '✓' ?>
+                                        </button>
+                                    </form>
+                                    
+                                    <form method="POST" style="display: inline;">
+                                        <input type="hidden" name="_token" value="<?= generateCSRFToken() ?>">
+                                        <input type="hidden" name="notification_id" value="<?= $notification['id'] ?>">
+                                        <input type="hidden" name="action" value="delete_notification">
+                                        <button type="submit" 
+                                                class="action-btn" 
+                                                style="background: none; border: none; color: inherit; opacity: 0.6; cursor: pointer; padding: 0.25rem;" 
+                                                title="Supprimer"
+                                                onclick="return confirm('Supprimer cette notification ?')">
+                                            🗑️
+                                        </button>
+                                    </form>
+                                </div>
                             </div>
-                            
-                            <!-- Indicateur non lu -->
-                            <?php if (!$notification['is_read']): ?>
-                                <div class="unread-indicator" style="width: 8px; height: 8px; background: rgb(var(--color-primary)); border-radius: 50%; flex-shrink: 0;"></div>
-                            <?php endif; ?>
                         </div>
                     </div>
                 <?php endforeach; ?>
+                
+                <!-- Pagination -->
+                <?php if ($meta['total_pages'] > 1): ?>
+                    <div style="padding: 2rem; text-align: center;">
+                        <?php for ($i = 1; $i <= $meta['total_pages']; $i++): ?>
+                            <a href="?page=<?= $i ?>&filter=<?= htmlspecialchars($filter) ?>&category=<?= htmlspecialchars($category) ?>" 
+                               class="pagination-btn <?= $i === $meta['current_page'] ? 'active' : '' ?>"
+                               style="display: inline-block; padding: 0.5rem 1rem; margin: 0 0.25rem; border-radius: 6px; text-decoration: none; transition: all 0.3s; <?= $i === $meta['current_page'] ? 'background: rgba(var(--color-primary), 0.1); color: rgb(var(--color-primary));' : 'background: rgba(255,255,255,0.05);' ?>">
+                                <?= $i ?>
+                            </a>
+                        <?php endfor; ?>
+                    </div>
+                <?php endif; ?>
+                
+            <?php else: ?>
+                <!-- État vide -->
+                <div style="padding: 4rem 2rem; text-align: center;">
+                    <div style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.3;">
+                        <?= $filter === 'unread' ? '📭' : '📫' ?>
+                    </div>
+                    <h3 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem;">
+                        <?php if ($filter === 'unread'): ?>
+                            Aucune notification non lue
+                        <?php elseif ($filter === 'read'): ?>
+                            Aucune notification lue
+                        <?php else: ?>
+                            Aucune notification
+                        <?php endif; ?>
+                    </h3>
+                    <p style="opacity: 0.8;">
+                        <?php if ($filter === 'unread'): ?>
+                            Toutes vos notifications sont à jour !
+                        <?php else: ?>
+                            Vous recevrez ici vos notifications et messages.
+                        <?php endif; ?>
+                    </p>
+                </div>
             <?php endif; ?>
         </div>
-
-        <!-- Pagination -->
-        <?php if ($notifications['pagination']['total_pages'] > 1): ?>
-            <div class="glassmorphism p-4 mt-6">
-                <div style="display: flex; justify-content: center; gap: 1rem;">
-                    <?php if ($notifications['pagination']['has_prev']): ?>
-                        <a href="?page=<?= $page - 1 ?>&filter=<?= $filter ?>" class="glass-button glass-button-secondary">
-                            Précédent
-                        </a>
-                    <?php endif; ?>
-                    
-                    <span style="display: flex; align-items: center; padding: 0 1rem;">
-                        Page <?= $notifications['pagination']['current_page'] ?> sur <?= $notifications['pagination']['total_pages'] ?>
-                    </span>
-                    
-                    <?php if ($notifications['pagination']['has_next']): ?>
-                        <a href="?page=<?= $page + 1 ?>&filter=<?= $filter ?>" class="glass-button glass-button-secondary">
-                            Suivant
-                        </a>
-                    <?php endif; ?>
-                </div>
-            </div>
-        <?php endif; ?>
     </div>
 </div>
 
-<style>
-.filter-btn {
-    padding: 0.5rem 1rem;
-    border-radius: 0.5rem;
-    text-decoration: none;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    transition: all 0.3s ease;
-}
-
-.filter-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-}
-
-.filter-btn.active {
-    background: var(--gradient-primary);
-    color: white;
-    border-color: transparent;
-}
-
-.notification-item.unread {
-    border-left: 4px solid rgb(var(--color-primary));
-    background: rgba(var(--color-primary), 0.05);
-}
-
-.notification-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-}
-</style>
-
 <script>
-// Marquer une notification comme lue au clic
-document.querySelectorAll('.notification-item').forEach(item => {
-    item.addEventListener('click', function() {
-        const notificationId = this.dataset.id;
-        if (this.classList.contains('unread')) {
-            markAsRead(notificationId);
+// Marquer comme lu au clic
+document.querySelectorAll('.notification-item.unread').forEach(item => {
+    item.addEventListener('click', function(e) {
+        // Ne pas déclencher si on clique sur un bouton d'action
+        if (e.target.closest('.action-btn') || e.target.closest('form') || e.target.closest('a')) {
+            return;
         }
+        
+        const notificationId = this.dataset.notificationId;
+        markAsRead(notificationId);
     });
 });
 
-// Marquer comme lue
 async function markAsRead(notificationId) {
     try {
-        await apiRequest(`/api/notifications/${notificationId}/read`, 'POST', {
-            _token: '<?= generateCSRFToken() ?>'
+        const formData = new FormData();
+        formData.append('_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
+        formData.append('action', 'mark_read');
+        formData.append('notification_id', notificationId);
+        
+        const response = await fetch(window.location.href, {
+            method: 'POST',
+            body: formData
         });
         
-        const item = document.querySelector(`[data-id="${notificationId}"]`);
-        if (item) {
-            item.classList.remove('unread');
-            const indicator = item.querySelector('.unread-indicator');
-            if (indicator) indicator.remove();
+        if (response.ok) {
+            // Mettre à jour visuellement
+            const item = document.querySelector(`[data-notification-id="${notificationId}"]`);
+            if (item) {
+                item.classList.remove('unread');
+                item.classList.add('read');
+                item.style.background = '';
+                
+                // Mettre à jour l'indicateur de statut
+                const statusDot = item.querySelector('.notification-status div');
+                if (statusDot) {
+                    statusDot.style.background = 'rgba(255,255,255,0.2)';
+                }
+            }
+            
+            // Mettre à jour le compteur dans la navigation si présent
+            updateNotificationCounter();
         }
     } catch (error) {
-        console.error('Erreur lors du marquage de la notification');
+        console.error('Erreur marquage lecture:', error);
     }
 }
 
-// Marquer toutes comme lues
-async function markAllAsRead() {
+function updateNotificationCounter() {
+    // Mettre à jour le compteur de notifications non lues
+    const unreadItems = document.querySelectorAll('.notification-item.unread');
+    const counter = document.querySelector('.notification-counter');
+    if (counter) {
+        const count = unreadItems.length;
+        counter.textContent = count;
+        counter.style.display = count > 0 ? 'block' : 'none';
+    }
+}
+
+// Animation hover pour les notifications
+document.querySelectorAll('.notification-item').forEach(item => {
+    item.addEventListener('mouseenter', function() {
+        this.style.transform = 'translateX(4px)';
+        this.style.transition = 'transform 0.2s';
+    });
+    
+    item.addEventListener('mouseleave', function() {
+        this.style.transform = 'translateX(0)';
+    });
+});
+
+// Auto-refresh des notifications (toutes les minutes)
+setInterval(async () => {
     try {
-        const response = await apiRequest('/api/notifications/mark-all-read', 'POST', {
-            _token: '<?= generateCSRFToken() ?>'
-        });
+        const response = await fetch('/api/notifications/count');
+        const data = await response.json();
         
-        if (response.error) {
-            showToast(response.error, 'error');
-        } else {
-            showToast('Toutes les notifications ont été marquées comme lues', 'success');
-            location.reload();
+        if (data.unread > document.querySelectorAll('.notification-item.unread').length) {
+            // Il y a de nouvelles notifications, recharger la page
+            window.location.reload();
         }
     } catch (error) {
-        showToast('Erreur lors du marquage des notifications', 'error');
+        console.error('Erreur vérification notifications:', error);
     }
+}, 60000);
+</script>
+
+<style>
+.filter-btn:hover {
+    background: rgba(var(--color-primary), 0.05) !important;
 }
 
-// Vider les notifications
-async function clearNotifications() {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer toutes les notifications ?')) {
-        return;
+.action-btn:hover {
+    opacity: 1 !important;
+    transform: scale(1.1);
+}
+
+.notification-item {
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.notification-item:hover {
+    background: rgba(255,255,255,0.02) !important;
+}
+
+.notification-item.unread:hover {
+    background: rgba(var(--color-primary), 0.05) !important;
+}
+
+.pagination-btn:hover {
+    background: rgba(var(--color-primary), 0.05) !important;
+}
+
+@media (max-width: 768px) {
+    .notification-item {
+        padding: 1rem !important;
     }
     
-    try {
-        const response = await apiRequest('/api/notifications/clear', 'DELETE', {
-            _token: '<?= generateCSRFToken() ?>'
-        });
-        
-        if (response.error) {
-            showToast(response.error, 'error');
-        } else {
-            showToast('Notifications supprimées avec succès', 'success');
-            location.reload();
-        }
-    } catch (error) {
-        showToast('Erreur lors de la suppression des notifications', 'error');
+    .notification-item > div:first-child {
+        display: none; /* Masquer l'indicateur de statut sur mobile */
+    }
+    
+    .grid-3 {
+        grid-template-columns: 1fr !important;
     }
 }
-</script>
+</style>
 
 <?php require_once ROOT_PATH . '/includes/footer.php'; ?>

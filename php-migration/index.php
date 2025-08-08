@@ -69,14 +69,16 @@ $router->get('/analytics', 'pages/analytics.php', true);
 $router->get('/assessments', 'pages/assessments.php', true);
 $router->get('/system-monitoring', 'pages/system-monitoring.php', true);
 $router->get('/study-groups', 'pages/study-groups.php', true);
-$router->get('/help-center', 'pages/help-center.php', true);
+$router->get('/manual', 'pages/manual.php', true);
 $router->get('/wysiwyg-editor', 'pages/wysiwyg-editor.php', true);
-$router->get('/archive-export', 'pages/archive-export.php', true);
-$router->get('/settings', 'pages/settings.php', true);
+$router->get('/system-updates', 'pages/system-updates.php', true);
 $router->get('/notifications', 'pages/notifications.php', true);
+$router->get('/help-center', 'pages/help-center.php', true);
+$router->get('/super-admin', 'pages/super-admin.php', true);
+$router->get('/settings', 'pages/settings.php', true);
+$router->get('/archive-export', 'pages/archive-export.php', true);
 $router->get('/reports', 'pages/reports.php', true);
 $router->get('/calendar', 'pages/calendar.php', true);
-$router->get('/system-updates', 'pages/system-updates.php', true);
 $router->get('/user-manual', 'pages/user-manual.php', true);
 
 // Routes API authentifiées
