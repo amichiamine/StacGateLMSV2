@@ -105,6 +105,87 @@ class Database {
             
             $sql = "UPDATE {$table} SET {$setClause} WHERE {$where}";
             $stmt = $this->pdo->prepare($sql);
+            $stmt->execute(array_merge($data, $whereParams));
+            
+            return $stmt->rowCount();
+        } catch (PDOException $e) {
+            error_log("Database update error: " . $e->getMessage() . " Table: " . $table);
+            throw new Exception("Erreur lors de la mise à jour des données");
+        }
+    }
+    
+    /**
+     * Supprimer des données
+     */
+    public function delete($table, $where, $whereParams = []) {
+        try {
+            $sql = "DELETE FROM {$table} WHERE {$where}";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($whereParams);
+            
+            return $stmt->rowCount();
+        } catch (PDOException $e) {
+            error_log("Database delete error: " . $e->getMessage() . " Table: " . $table);
+            throw new Exception("Erreur lors de la suppression des données");
+        }
+    }
+    
+    /**
+     * Pagination des résultats
+     */
+    public function paginate($sql, $params = [], $page = 1, $perPage = 20) {
+        try {
+            // Compter le total
+            $countSql = "SELECT COUNT(*) as total FROM (" . $sql . ") as count_query";
+            $stmt = $this->pdo->prepare($countSql);
+            $stmt->execute($params);
+            $total = $stmt->fetch()['total'];
+            
+            // Calculer les métadonnées de pagination
+            $totalPages = ceil($total / $perPage);
+            $offset = ($page - 1) * $perPage;
+            
+            // Requête paginée
+            $paginatedSql = $sql . " LIMIT {$perPage} OFFSET {$offset}";
+            $stmt = $this->pdo->prepare($paginatedSql);
+            $stmt->execute($params);
+            $data = $stmt->fetchAll();
+            
+            return [
+                'data' => $data,
+                'pagination' => [
+                    'current_page' => $page,
+                    'per_page' => $perPage,
+                    'total' => $total,
+                    'total_pages' => $totalPages,
+                    'has_next' => $page < $totalPages,
+                    'has_prev' => $page > 1
+                ]
+            ];
+        } catch (PDOException $e) {
+            error_log("Database paginate error: " . $e->getMessage() . " SQL: " . $sql);
+            throw new Exception("Erreur lors de la pagination");
+        }
+    }
+    
+    /**
+     * Insérer avec timestamps automatiques
+     */
+    public function insertWithTimestamps($table, $data) {
+        $data['created_at'] = date('Y-m-d H:i:s');
+        $data['updated_at'] = date('Y-m-d H:i:s');
+        return $this->insert($table, $data);
+    }
+    
+    /**
+     * Mettre à jour avec timestamp automatique
+     */
+    public function updateWithTimestamp($table, $data, $where, $whereParams = []) {
+        $data['updated_at'] = date('Y-m-d H:i:s');
+        return $this->update($table, $data, $where, $whereParams);
+    }
+            $sql = "UPDATE {$table} SET {$setClause} WHERE {$where}";
+            $stmt = $this->pdo->prepare($sql);
             
             // Combiner les paramètres de données et de condition WHERE
             $allParams = array_merge($data, $whereParams);

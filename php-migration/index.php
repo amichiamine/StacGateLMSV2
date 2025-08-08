@@ -71,6 +71,10 @@ $router->get('/study-groups', 'pages/study-groups.php', true);
 $router->get('/help-center', 'pages/help-center.php', true);
 $router->get('/wysiwyg-editor', 'pages/wysiwyg-editor.php', true);
 $router->get('/archive-export', 'pages/archive-export.php', true);
+$router->get('/settings', 'pages/settings.php', true);
+$router->get('/notifications', 'pages/notifications.php', true);
+$router->get('/reports', 'pages/reports.php', true);
+$router->get('/calendar', 'pages/calendar.php', true);
 $router->get('/system-updates', 'pages/system-updates.php', true);
 $router->get('/user-manual', 'pages/user-manual.php', true);
 
@@ -112,6 +116,30 @@ $router->post('/api/study-groups', 'api/study-groups/create.php', true);
 $router->post('/api/study-groups/{id}/join', 'api/study-groups/join.php', true);
 $router->get('/api/study-groups/{id}/messages', 'api/study-groups/messages.php', true);
 $router->post('/api/study-groups/{id}/messages', 'api/study-groups/send-message.php', true);
+
+// Routes exports
+$router->get('/api/exports', 'api/exports/index.php', true);
+$router->post('/api/exports', 'api/exports/index.php', true);
+$router->delete('/api/exports', 'api/exports/index.php', true);
+$router->get('/api/exports/download', 'api/exports/download.php', true);
+
+// Routes help
+$router->get('/api/help', 'api/help/index.php', true);
+$router->post('/api/help', 'api/help/index.php', true);
+
+// Routes utilisateurs supplémentaires
+$router->get('/api/users/profile', 'api/users/profile.php', true);
+$router->put('/api/users/profile', 'api/users/profile.php', true);
+$router->post('/api/users/profile', 'api/users/profile.php', true);
+
+// Routes study groups supplémentaires
+$router->post('/api/study-groups/join', 'api/study-groups/join.php', true);
+$router->delete('/api/study-groups/join', 'api/study-groups/join.php', true);
+
+// Routes système
+$router->post('/api/system/clear-cache', 'api/system/clear-cache.php', true);
+$router->get('/api/system/info', 'api/system/info.php', true);
+$router->get('/api/system/health', 'api/system/health.php', true);
 
 // Routes exports
 $router->get('/api/exports', 'api/exports/index.php', true);

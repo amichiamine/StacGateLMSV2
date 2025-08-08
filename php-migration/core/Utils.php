@@ -338,6 +338,52 @@ class Utils {
         $brightness = (($r * 299) + ($g * 587) + ($b * 114)) / 1000;
         return $brightness > 155;
     }
+    
+    /**
+     * Convertir une taille en bytes
+     */
+    public static function convertToBytes($value) {
+        $units = ['B', 'K', 'M', 'G', 'T', 'P'];
+        $value = trim($value);
+        $last = strtoupper(substr($value, -1));
+        $value = (int) substr($value, 0, -1);
+        
+        switch($last) {
+            case 'G':
+                $value *= 1024;
+            case 'M':
+                $value *= 1024;
+            case 'K':
+                $value *= 1024;
+        }
+        
+        return $value;
+    }
+    
+    /**
+     * Formater une durée relative (il y a X temps)
+     */
+    public static function timeAgo($datetime) {
+        $time = time() - strtotime($datetime);
+        
+        if ($time < 60) return 'À l\'instant';
+        if ($time < 3600) return floor($time/60) . ' min';
+        if ($time < 86400) return floor($time/3600) . ' h';
+        if ($time < 2592000) return floor($time/86400) . ' j';
+        if ($time < 31104000) return floor($time/2592000) . ' mois';
+        
+        return floor($time/31104000) . ' ans';
+    }
+    
+    /**
+     * Vérifier et créer un répertoire s'il n'existe pas
+     */
+    public static function ensureDirectory($path) {
+        if (!is_dir($path)) {
+            return mkdir($path, 0755, true);
+        }
+        return true;
+    }
 }
 
 /**
