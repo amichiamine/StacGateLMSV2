@@ -25,7 +25,7 @@ define('UPLOADS_PATH', ROOT_PATH . '/uploads');
 
 // Chargement de la configuration
 require_once CONFIG_PATH . '/config.php';
-require_once CONFIG_PATH . '/database.php';
+require_once CONFIG_PATH . '/database-simple.php';
 
 // Chargement des classes core
 require_once CORE_PATH . '/Database.php';
@@ -38,7 +38,6 @@ require_once CORE_PATH . '/Utils.php';
 require_once CORE_PATH . '/services/AuthService.php';
 require_once CORE_PATH . '/services/EstablishmentService.php';
 require_once CORE_PATH . '/services/CourseService.php';
-require_once CORE_PATH . '/services/UserService.php';
 require_once CORE_PATH . '/services/AnalyticsService.php';
 require_once CORE_PATH . '/services/AssessmentService.php';
 require_once CORE_PATH . '/services/StudyGroupService.php';
@@ -181,7 +180,7 @@ $router->get('/404', 'pages/not-found.php');
 
 // Traitement de la requête
 try {
-    $router->handleRequest();
+    $router->dispatch();
 } catch (Exception $e) {
     error_log("Router error: " . $e->getMessage());
     header("Location: /404");

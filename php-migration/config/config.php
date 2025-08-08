@@ -55,11 +55,11 @@ define('API_RATE_LIMIT', 100); // requêtes par minute
 // Configuration cache (simple file cache)
 define('CACHE_ENABLED', true);
 define('CACHE_LIFETIME', 3600); // 1 heure
-define('CACHE_PATH', ROOT_PATH . '/cache');
+define('CACHE_PATH', (defined('ROOT_PATH') ? ROOT_PATH : __DIR__ . '/..') . '/cache');
 
 // Configuration logs
 define('LOG_ENABLED', true);
-define('LOG_PATH', ROOT_PATH . '/logs');
+define('LOG_PATH', (defined('ROOT_PATH') ? ROOT_PATH : __DIR__ . '/..') . '/logs');
 define('LOG_LEVEL', APP_DEBUG ? 'DEBUG' : 'INFO');
 
 // Configuration collaboration temps réel
@@ -127,11 +127,18 @@ function verifyCSRFToken($token) {
     return isset($_SESSION[CSRF_TOKEN_NAME]) && hash_equals($_SESSION[CSRF_TOKEN_NAME], $token);
 }
 
+// Définir UPLOADS_PATH si pas encore défini
+if (!defined('UPLOADS_PATH')) {
+    define('UPLOADS_PATH', (defined('ROOT_PATH') ? ROOT_PATH : __DIR__ . '/..') . '/uploads');
+}
+
 // Initialisation des dossiers nécessaires
-$requiredDirs = [CACHE_PATH, LOG_PATH, UPLOADS_PATH];
-foreach ($requiredDirs as $dir) {
-    if (!is_dir($dir)) {
-        mkdir($dir, 0755, true);
+if (defined('ROOT_PATH')) {
+    $requiredDirs = [CACHE_PATH, LOG_PATH, UPLOADS_PATH];
+    foreach ($requiredDirs as $dir) {
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
     }
 }
 ?>

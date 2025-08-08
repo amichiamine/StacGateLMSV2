@@ -1,381 +1,317 @@
-<?php
-/**
- * Header commun pour toutes les pages
- */
-
-// Obtenir l'utilisateur connecté
-$currentUser = Auth::user();
-$isAuthenticated = Auth::check();
-
-// Obtenir l'établissement actuel
-$currentEstablishment = null;
-if ($currentUser && $currentUser['establishment_id']) {
-    $establishmentService = new EstablishmentService();
-    $currentEstablishment = $establishmentService->getEstablishmentById($currentUser['establishment_id']);
-    
-    // Obtenir le thème actif
-    $activeTheme = $establishmentService->getActiveTheme($currentUser['establishment_id']);
-}
-
-// Configuration du thème
-$themeColors = DEFAULT_THEME_COLORS;
-if (isset($activeTheme) && $activeTheme) {
-    $themeColors = [
-        'primary' => $activeTheme['primary_color'],
-        'secondary' => $activeTheme['secondary_color'],
-        'accent' => $activeTheme['accent_color'],
-        'background' => $activeTheme['background_color'],
-        'text' => $activeTheme['text_color']
-    ];
-}
-
-// Générer le token CSRF
-$csrfToken = generateCSRFToken();
-
-// Message flash
-$flashMessage = Utils::getFlashMessage();
-
-// Page title par défaut
-$pageTitle = $pageTitle ?? 'StacGateLMS - Plateforme E-learning';
-?>
 <!DOCTYPE html>
-<html lang="fr" class="<?= isset($_COOKIE['dark_mode']) && $_COOKIE['dark_mode'] === 'true' ? 'dark' : '' ?>">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="<?= $pageDescription ?? 'Plateforme e-learning moderne avec système multi-tenant et interface glassmorphism' ?>">
-    <title><?= htmlspecialchars($pageTitle) ?></title>
+    <title><?= htmlspecialchars($pageTitle ?? 'StacGateLMS') ?></title>
+    
+    <?php if (isset($pageDescription)): ?>
+        <meta name="description" content="<?= htmlspecialchars($pageDescription) ?>">
+    <?php endif; ?>
+    
+    <!-- SEO et Partage Social -->
+    <meta property="og:title" content="<?= htmlspecialchars($pageTitle ?? 'StacGateLMS') ?>">
+    <meta property="og:description" content="<?= htmlspecialchars($pageDescription ?? 'Plateforme e-learning moderne') ?>">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="<?= BASE_URL ?>/assets/images/og-image.jpg">
+    
+    <!-- Styles Glassmorphism -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --color-primary: 139, 92, 246;
+            --color-secondary: 167, 139, 250;
+            --color-accent: 196, 181, 253;
+            --color-success: 34, 197, 94;
+            --color-error: 239, 68, 68;
+            --color-warning: 245, 158, 11;
+            --color-info: 59, 130, 246;
+            
+            --gradient-primary: linear-gradient(135deg, rgb(139, 92, 246), rgb(167, 139, 250));
+            --gradient-secondary: linear-gradient(135deg, rgb(167, 139, 250), rgb(196, 181, 253));
+            
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+        
+        .glassmorphism {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            box-shadow: var(--glass-shadow);
+        }
+        
+        .glass-button {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            padding: 0.75rem 1.5rem;
+            color: white;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        
+        .glass-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        .glass-button-secondary {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .glass-input {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            color: white;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .glass-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .glass-input:focus {
+            outline: none;
+            border-color: rgb(var(--color-primary));
+            box-shadow: 0 0 0 2px rgba(var(--color-primary), 0.2);
+        }
+        
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--glass-border);
+            padding: 1rem 0;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: white;
+            text-decoration: none;
+        }
+        
+        .nav {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        
+        .nav a {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+        
+        .nav a:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .grid {
+            display: grid;
+            gap: 2rem;
+        }
+        
+        .grid-2 { grid-template-columns: repeat(2, 1fr); }
+        .grid-3 { grid-template-columns: repeat(3, 1fr); }
+        .grid-4 { grid-template-columns: repeat(4, 1fr); }
+        
+        .p-4 { padding: 1.5rem; }
+        .p-6 { padding: 2rem; }
+        .p-8 { padding: 2.5rem; }
+        
+        .mb-4 { margin-bottom: 1.5rem; }
+        .mb-6 { margin-bottom: 2rem; }
+        .mb-8 { margin-bottom: 2.5rem; }
+        
+        .text-center { text-align: center; }
+        
+        .hidden { display: none; }
+        
+        @media (max-width: 768px) {
+            .grid-2, .grid-3, .grid-4 {
+                grid-template-columns: 1fr;
+            }
+            
+            .nav {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            body {
+                padding-top: 120px;
+            }
+        }
+        
+        .flash-message {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 2000;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .flash-message.success {
+            background: rgba(34, 197, 94, 0.9);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+        
+        .flash-message.error {
+            background: rgba(239, 68, 68, 0.9);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        
+        .flash-message.warning {
+            background: rgba(245, 158, 11, 0.9);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+        
+        .flash-message.info {
+            background: rgba(59, 130, 246, 0.9);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
     
     <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+    <link rel="icon" type="image/x-icon" href="<?= BASE_URL ?>/assets/images/favicon.ico">
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
-    <!-- CSS -->
-    <link rel="stylesheet" href="/assets/css/glassmorphism.css">
-    
-    <!-- Variables CSS dynamiques pour le thème -->
-    <style>
-        :root {
-            --color-primary: <?= implode(' ', sscanf($themeColors['primary'], "#%02x%02x%02x")) ?>;
-            --color-secondary: <?= implode(' ', sscanf($themeColors['secondary'], "#%02x%02x%02x")) ?>;
-            --color-accent: <?= implode(' ', sscanf($themeColors['accent'], "#%02x%02x%02x")) ?>;
-            --color-background: <?= implode(' ', sscanf($themeColors['background'], "#%02x%02x%02x")) ?>;
-            --color-text: <?= implode(' ', sscanf($themeColors['text'], "#%02x%02x%02x")) ?>;
-        }
-    </style>
-    
-    <!-- Meta tags supplémentaires selon la page -->
-    <?php if (isset($additionalMeta)): ?>
-        <?= $additionalMeta ?>
-    <?php endif; ?>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar glass-nav">
-        <div class="nav-container">
-            <!-- Logo -->
-            <a href="<?= $isAuthenticated ? '/dashboard' : '/' ?>" class="nav-logo">
-                <?php if ($currentEstablishment && $currentEstablishment['logo']): ?>
-                    <img src="<?= htmlspecialchars($currentEstablishment['logo']) ?>" alt="<?= htmlspecialchars($currentEstablishment['name']) ?>" style="height: 2rem; display: inline-block;">
-                <?php else: ?>
-                    StacGateLMS
-                <?php endif; ?>
-            </a>
-            
-            <!-- Menu desktop -->
-            <ul class="nav-menu">
-                <?php if (!$isAuthenticated): ?>
-                    <!-- Menu public -->
-                    <li><a href="/" class="nav-link">Accueil</a></li>
-                    <li><a href="/portal" class="nav-link">Établissements</a></li>
-                    <li><a href="/login" class="nav-link">Connexion</a></li>
-                <?php else: ?>
-                    <!-- Menu authentifié -->
-                    <li><a href="/dashboard" class="nav-link">Tableau de bord</a></li>
-                    <li><a href="/courses" class="nav-link">Cours</a></li>
-                    
-                    <?php if (Auth::hasRole('formateur')): ?>
-                        <li><a href="/assessments" class="nav-link">Évaluations</a></li>
-                        <li><a href="/study-groups" class="nav-link">Groupes</a></li>
-                    <?php endif; ?>
-                    
-                    <?php if (Auth::hasRole('manager')): ?>
-                        <li><a href="/analytics" class="nav-link">Analytics</a></li>
-                        <li><a href="/user-management" class="nav-link">Utilisateurs</a></li>
-                    <?php endif; ?>
-                    
-                    <?php if (Auth::hasRole('admin')): ?>
-                        <li><a href="/admin" class="nav-link">Administration</a></li>
-                    <?php endif; ?>
-                    
-                    <?php if (Auth::hasRole('super_admin')): ?>
-                        <li><a href="/super-admin" class="nav-link">Super Admin</a></li>
-                        <li><a href="/system-updates" class="nav-link">Système</a></li>
-                    <?php endif; ?>
-                    
-                    <!-- Menu utilisateur -->
-                    <li class="user-menu" style="position: relative;">
-                        <button class="nav-link" onclick="toggleUserMenu()" style="background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
-                            <?php if ($currentUser['avatar']): ?>
-                                <img src="<?= htmlspecialchars($currentUser['avatar']) ?>" alt="Avatar" style="width: 2rem; height: 2rem; border-radius: 50%; object-fit: cover;">
-                            <?php else: ?>
-                                <div style="width: 2rem; height: 2rem; border-radius: 50%; background: var(--gradient-primary); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">
-                                    <?= strtoupper(substr($currentUser['first_name'], 0, 1)) ?>
-                                </div>
-                            <?php endif; ?>
-                            <span><?= htmlspecialchars($currentUser['first_name']) ?></span>
-                            <svg style="width: 1rem; height: 1rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                            </svg>
-                        </button>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="/" class="logo">
+                    🎓 StacGateLMS
+                </a>
+                
+                <nav class="nav">
+                    <?php if (Auth::isAuthenticated()): ?>
+                        <?php $currentUser = Auth::user(); ?>
+                        <a href="/dashboard">📊 Dashboard</a>
                         
-                        <div id="userDropdown" class="glassmorphism" style="position: absolute; top: 100%; right: 0; width: 200px; padding: 1rem; display: none; z-index: 1000;">
-                            <div style="margin-bottom: 0.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--glass-border);">
-                                <div style="font-weight: 600;"><?= htmlspecialchars($currentUser['first_name'] . ' ' . $currentUser['last_name']) ?></div>
-                                <div style="font-size: 0.875rem; opacity: 0.7;"><?= htmlspecialchars($currentUser['role']) ?></div>
-                                <?php if ($currentEstablishment): ?>
-                                    <div style="font-size: 0.75rem; opacity: 0.6;"><?= htmlspecialchars($currentEstablishment['name']) ?></div>
-                                <?php endif; ?>
-                            </div>
-                            <a href="/help-center" style="display: block; padding: 0.5rem 0; color: inherit; text-decoration: none;">Centre d'aide</a>
-                            <button onclick="toggleTheme()" style="display: block; width: 100%; text-align: left; background: none; border: none; padding: 0.5rem 0; color: inherit; cursor: pointer;">
-                                <span id="themeToggleText">Mode sombre</span>
-                            </button>
-                            <form action="/api/auth/logout" method="POST" style="margin: 0;">
-                                <input type="hidden" name="_token" value="<?= $csrfToken ?>">
-                                <button type="submit" style="display: block; width: 100%; text-align: left; background: none; border: none; padding: 0.5rem 0; color: #ef4444; cursor: pointer;">
-                                    Déconnexion
-                                </button>
-                            </form>
-                        </div>
-                    </li>
-                <?php endif; ?>
-            </ul>
-            
-            <!-- Toggle menu mobile -->
-            <div class="mobile-menu-toggle" onclick="toggleMobileMenu()">
-                <span></span>
-                <span></span>
-                <span></span>
+                        <?php if (Auth::hasRole('formateur')): ?>
+                            <a href="/courses">📚 Cours</a>
+                        <?php endif; ?>
+                        
+                        <?php if (Auth::hasRole('admin')): ?>
+                            <a href="/admin">⚙️ Admin</a>
+                        <?php endif; ?>
+                        
+                        <?php if (Auth::hasRole('super_admin')): ?>
+                            <a href="/super-admin">👑 Super Admin</a>
+                        <?php endif; ?>
+                        
+                        <a href="/help-center">❓ Aide</a>
+                        <a href="/settings">⚙️ Paramètres</a>
+                        <a href="/logout" class="glass-button glass-button-secondary">
+                            🚪 Déconnexion
+                        </a>
+                    <?php else: ?>
+                        <a href="/portal">🏛️ Portail</a>
+                        <a href="/help-center">❓ Aide</a>
+                        <a href="/login" class="glass-button">
+                            🔐 Connexion
+                        </a>
+                    <?php endif; ?>
+                </nav>
             </div>
         </div>
-    </nav>
+    </header>
     
-    <!-- Menu mobile -->
-    <div id="mobileMenu" class="mobile-menu">
-        <div style="position: absolute; top: 2rem; right: 2rem; cursor: pointer; color: white; font-size: 2rem;" onclick="toggleMobileMenu()">×</div>
-        
-        <?php if (!$isAuthenticated): ?>
-            <a href="/" class="nav-link">Accueil</a>
-            <a href="/portal" class="nav-link">Établissements</a>
-            <a href="/login" class="nav-link">Connexion</a>
-        <?php else: ?>
-            <a href="/dashboard" class="nav-link">Tableau de bord</a>
-            <a href="/courses" class="nav-link">Cours</a>
-            
-            <?php if (Auth::hasRole('formateur')): ?>
-                <a href="/assessments" class="nav-link">Évaluations</a>
-                <a href="/study-groups" class="nav-link">Groupes</a>
-            <?php endif; ?>
-            
-            <?php if (Auth::hasRole('manager')): ?>
-                <a href="/analytics" class="nav-link">Analytics</a>
-                <a href="/user-management" class="nav-link">Utilisateurs</a>
-            <?php endif; ?>
-            
-            <?php if (Auth::hasRole('admin')): ?>
-                <a href="/admin" class="nav-link">Administration</a>
-            <?php endif; ?>
-            
-            <?php if (Auth::hasRole('super_admin')): ?>
-                <a href="/super-admin" class="nav-link">Super Admin</a>
-                <a href="/system-updates" class="nav-link">Système</a>
-            <?php endif; ?>
-            
-            <a href="/help-center" class="nav-link">Centre d'aide</a>
-            
-            <form action="/api/auth/logout" method="POST" style="margin: 0;">
-                <input type="hidden" name="_token" value="<?= $csrfToken ?>">
-                <button type="submit" class="nav-link" style="background: none; border: none; color: #ef4444; font-size: 1.5rem;">
-                    Déconnexion
-                </button>
-            </form>
-        <?php endif; ?>
-    </div>
-    
-    <!-- Message flash -->
+    <!-- Flash Messages -->
+    <?php $flashMessage = Utils::getFlashMessage(); ?>
     <?php if ($flashMessage): ?>
-        <div id="flashMessage" class="glassmorphism" style="position: fixed; top: 100px; right: 2rem; padding: 1rem 1.5rem; z-index: 1001; max-width: 400px; <?= $flashMessage['type'] === 'error' ? 'border-left: 4px solid #ef4444;' : 'border-left: 4px solid #10b981;' ?>">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span><?= htmlspecialchars($flashMessage['text']) ?></span>
-                <button onclick="document.getElementById('flashMessage').remove()" style="background: none; border: none; color: inherit; cursor: pointer; font-size: 1.25rem; margin-left: 1rem;">×</button>
-            </div>
+        <div class="flash-message <?= htmlspecialchars($flashMessage['type']) ?>" id="flashMessage">
+            <?= htmlspecialchars($flashMessage['text']) ?>
         </div>
         
         <script>
-        // Auto-hide flash message after 5 seconds
-        setTimeout(() => {
-            const flashEl = document.getElementById('flashMessage');
-            if (flashEl) {
-                flashEl.style.opacity = '0';
-                flashEl.style.transform = 'translateX(100%)';
-                setTimeout(() => flashEl.remove(), 300);
-            }
-        }, 5000);
+            setTimeout(() => {
+                const flash = document.getElementById('flashMessage');
+                if (flash) {
+                    flash.style.animation = 'slideIn 0.3s ease reverse';
+                    setTimeout(() => flash.remove(), 300);
+                }
+            }, 5000);
         </script>
     <?php endif; ?>
     
-    <!-- JavaScript commun -->
-    <script>
-        // Variables globales
-        window.APP_CONFIG = {
-            baseUrl: '<?= BASE_URL ?>',
-            csrfToken: '<?= $csrfToken ?>',
-            user: <?= $currentUser ? json_encode([
-                'id' => $currentUser['id'],
-                'name' => $currentUser['first_name'] . ' ' . $currentUser['last_name'],
-                'role' => $currentUser['role'],
-                'establishment_id' => $currentUser['establishment_id']
-            ]) : 'null' ?>,
-            establishment: <?= $currentEstablishment ? json_encode([
-                'id' => $currentEstablishment['id'],
-                'name' => $currentEstablishment['name'],
-                'slug' => $currentEstablishment['slug']
-            ]) : 'null' ?>
-        };
-        
-        // Toggle menu mobile
-        function toggleMobileMenu() {
-            const menu = document.getElementById('mobileMenu');
-            menu.classList.toggle('active');
-        }
-        
-        // Toggle menu utilisateur
-        function toggleUserMenu() {
-            const dropdown = document.getElementById('userDropdown');
-            dropdown.style.display = dropdown.style.display === 'none' || !dropdown.style.display ? 'block' : 'none';
-        }
-        
-        // Fermer les menus quand on clique ailleurs
-        document.addEventListener('click', function(event) {
-            const userMenu = document.querySelector('.user-menu');
-            const dropdown = document.getElementById('userDropdown');
-            
-            if (userMenu && !userMenu.contains(event.target)) {
-                dropdown.style.display = 'none';
-            }
-        });
-        
-        // Toggle thème dark/light
-        function toggleTheme() {
-            const html = document.documentElement;
-            const isDark = html.classList.contains('dark');
-            const newTheme = !isDark;
-            
-            html.classList.toggle('dark', newTheme);
-            
-            // Sauvegarder dans un cookie
-            document.cookie = `dark_mode=${newTheme}; path=/; max-age=${365 * 24 * 60 * 60}`;
-            
-            // Mettre à jour le texte du bouton
-            const toggleText = document.getElementById('themeToggleText');
-            if (toggleText) {
-                toggleText.textContent = newTheme ? 'Mode clair' : 'Mode sombre';
-            }
-        }
-        
-        // Initialiser le texte du toggle thème
-        document.addEventListener('DOMContentLoaded', function() {
-            const toggleText = document.getElementById('themeToggleText');
-            if (toggleText) {
-                const isDark = document.documentElement.classList.contains('dark');
-                toggleText.textContent = isDark ? 'Mode clair' : 'Mode sombre';
-            }
-        });
-        
-        // Utilitaire pour les requêtes AJAX
-        window.apiRequest = async function(url, options = {}) {
-            const config = {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    ...options.headers
-                },
-                ...options
-            };
-            
-            // Ajouter le token CSRF pour les requêtes POST/PUT/DELETE
-            if (['POST', 'PUT', 'DELETE'].includes(config.method)) {
-                if (config.body && typeof config.body === 'object') {
-                    config.body._token = window.APP_CONFIG.csrfToken;
-                    config.body = JSON.stringify(config.body);
-                } else if (config.body instanceof FormData) {
-                    config.body.append('_token', window.APP_CONFIG.csrfToken);
-                }
-            }
-            
-            try {
-                const response = await fetch(url, config);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                
-                const contentType = response.headers.get('content-type');
-                if (contentType && contentType.includes('application/json')) {
-                    return await response.json();
-                } else {
-                    return await response.text();
-                }
-            } catch (error) {
-                console.error('API Request failed:', error);
-                throw error;
-            }
-        };
-        
-        // Notification toast simple
-        window.showToast = function(message, type = 'info') {
-            const toast = document.createElement('div');
-            toast.className = 'glassmorphism animate-fade-in';
-            toast.style.cssText = `
-                position: fixed;
-                top: 120px;
-                right: 2rem;
-                padding: 1rem 1.5rem;
-                z-index: 1001;
-                max-width: 400px;
-                border-left: 4px solid ${type === 'error' ? '#ef4444' : '#10b981'};
-            `;
-            
-            toast.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span>${message}</span>
-                    <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; color: inherit; cursor: pointer; font-size: 1.25rem; margin-left: 1rem;">×</button>
-                </div>
-            `;
-            
-            document.body.appendChild(toast);
-            
-            // Auto-remove after 5 seconds
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                toast.style.transform = 'translateX(100%)';
-                setTimeout(() => toast.remove(), 300);
-            }, 5000);
-        };
-    </script>
-    
-    <!-- CSS et JS supplémentaires selon la page -->
-    <?php if (isset($additionalCSS)): ?>
-        <?= $additionalCSS ?>
-    <?php endif; ?>
-    
-    <?php if (isset($additionalJS)): ?>
-        <?= $additionalJS ?>
-    <?php endif; ?>
-</body>
-<?php // Le body sera fermé dans footer.php ?>
+    <!-- Main Content -->
+    <main>

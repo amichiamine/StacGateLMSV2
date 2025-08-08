@@ -1,298 +1,293 @@
 <?php
 /**
- * Classe Validator - Validation des données entrantes
+ * Validateur de données
+ * Validation côté serveur avec règles flexibles
  */
 
 class Validator {
     private $data;
     private $rules;
     private $errors = [];
-    private $messages = [
-        'required' => 'Le champ :field est obligatoire',
-        'email' => 'Le champ :field doit être une adresse email valide',
-        'min' => 'Le champ :field doit contenir au moins :min caractères',
-        'max' => 'Le champ :field ne peut pas dépasser :max caractères',
-        'numeric' => 'Le champ :field doit être numérique',
-        'integer' => 'Le champ :field doit être un entier',
-        'in' => 'Le champ :field doit être l\'une des valeurs suivantes: :values',
-        'unique' => 'Cette valeur pour :field existe déjà',
-        'confirmed' => 'Le champ :field ne correspond pas à sa confirmation',
-        'url' => 'Le champ :field doit être une URL valide',
-        'alpha' => 'Le champ :field ne peut contenir que des lettres',
-        'alpha_num' => 'Le champ :field ne peut contenir que des lettres et des chiffres',
-        'regex' => 'Le format du champ :field est invalide',
-        'date' => 'Le champ :field doit être une date valide',
-        'boolean' => 'Le champ :field doit être vrai ou faux',
-        'json' => 'Le champ :field doit être du JSON valide'
-    ];
+    private $messages = [];
     
-    public function __construct($data, $rules) {
+    public function __construct($data = []) {
         $this->data = $data;
-        $this->rules = $rules;
+        $this->initDefaultMessages();
     }
     
-    /**
-     * Valider les données
-     */
-    public function validate() {
-        foreach ($this->rules as $field => $ruleSet) {
-            $rules = is_string($ruleSet) ? explode('|', $ruleSet) : $ruleSet;
-            
-            foreach ($rules as $rule) {
-                $this->applyRule($field, $rule);
-            }
+    private function initDefaultMessages() {
+        $this->messages = [
+            'required' => 'Le champ {field} est requis',
+            'email' => 'Le champ {field} doit être une adresse email valide',
+            'min' => 'Le champ {field} doit contenir au moins {param} caractères',
+            'max' => 'Le champ {field} ne peut pas dépasser {param} caractères',
+            'numeric' => 'Le champ {field} doit être numérique',
+            'integer' => 'Le champ {field} doit être un entier',
+            'url' => 'Le champ {field} doit être une URL valide',
+            'match' => 'Le champ {field} ne correspond pas au champ {param}',
+            'unique' => 'Cette valeur pour {field} existe déjà',
+            'exists' => 'Cette valeur pour {field} n\'existe pas',
+            'in' => 'Le champ {field} doit être une des valeurs: {param}',
+            'password' => 'Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule et un chiffre'
+        ];
+    }
+    
+    public function validate($rules) {
+        $this->rules = $rules;
+        $this->errors = [];
+        
+        foreach ($rules as $field => $fieldRules) {
+            $this->validateField($field, $fieldRules);
         }
         
         return empty($this->errors);
     }
     
-    /**
-     * Appliquer une règle de validation
-     */
-    private function applyRule($field, $rule) {
-        $parameters = [];
+    private function validateField($field, $rules) {
+        $rulesArray = is_string($rules) ? explode('|', $rules) : $rules;
+        $value = $this->data[$field] ?? null;
         
+        foreach ($rulesArray as $rule) {
+            if (is_string($rule)) {
+                $this->applyRule($field, $rule, $value);
+            }
+        }
+    }
+    
+    private function applyRule($field, $rule, $value) {
+        $params = [];
+        
+        // Extraire les paramètres de la règle (ex: min:8)
         if (strpos($rule, ':') !== false) {
-            [$rule, $paramString] = explode(':', $rule, 2);
-            $parameters = explode(',', $paramString);
+            list($rule, $paramStr) = explode(':', $rule, 2);
+            $params = explode(',', $paramStr);
         }
         
-        $value = $this->getValue($field);
+        $methodName = 'validate' . ucfirst($rule);
         
-        switch ($rule) {
-            case 'required':
-                if (empty($value) && $value !== '0') {
-                    $this->addError($field, 'required');
-                }
-                break;
-                
-            case 'email':
-                if (!empty($value) && !filter_var($value, FILTER_VALIDATE_EMAIL)) {
-                    $this->addError($field, 'email');
-                }
-                break;
-                
-            case 'min':
-                if (!empty($value) && strlen($value) < $parameters[0]) {
-                    $this->addError($field, 'min', ['min' => $parameters[0]]);
-                }
-                break;
-                
-            case 'max':
-                if (!empty($value) && strlen($value) > $parameters[0]) {
-                    $this->addError($field, 'max', ['max' => $parameters[0]]);
-                }
-                break;
-                
-            case 'numeric':
-                if (!empty($value) && !is_numeric($value)) {
-                    $this->addError($field, 'numeric');
-                }
-                break;
-                
-            case 'integer':
-                if (!empty($value) && !filter_var($value, FILTER_VALIDATE_INT)) {
-                    $this->addError($field, 'integer');
-                }
-                break;
-                
-            case 'in':
-                if (!empty($value) && !in_array($value, $parameters)) {
-                    $this->addError($field, 'in', ['values' => implode(', ', $parameters)]);
-                }
-                break;
-                
-            case 'unique':
-                if (!empty($value)) {
-                    $table = $parameters[0];
-                    $column = $parameters[1] ?? $field;
-                    $except = $parameters[2] ?? null;
-                    
-                    $db = Database::getInstance();
-                    $where = "{$column} = :value";
-                    $params = ['value' => $value];
-                    
-                    if ($except) {
-                        $where .= " AND id != :except";
-                        $params['except'] = $except;
-                    }
-                    
-                    if ($db->exists($table, $where, $params)) {
-                        $this->addError($field, 'unique');
-                    }
-                }
-                break;
-                
-            case 'confirmed':
-                $confirmField = $field . '_confirmation';
-                if ($value !== $this->getValue($confirmField)) {
-                    $this->addError($field, 'confirmed');
-                }
-                break;
-                
-            case 'url':
-                if (!empty($value) && !filter_var($value, FILTER_VALIDATE_URL)) {
-                    $this->addError($field, 'url');
-                }
-                break;
-                
-            case 'alpha':
-                if (!empty($value) && !preg_match('/^[a-zA-ZÀ-ÿ\s]+$/', $value)) {
-                    $this->addError($field, 'alpha');
-                }
-                break;
-                
-            case 'alpha_num':
-                if (!empty($value) && !preg_match('/^[a-zA-Z0-9À-ÿ\s]+$/', $value)) {
-                    $this->addError($field, 'alpha_num');
-                }
-                break;
-                
-            case 'regex':
-                if (!empty($value) && !preg_match($parameters[0], $value)) {
-                    $this->addError($field, 'regex');
-                }
-                break;
-                
-            case 'date':
-                if (!empty($value) && !strtotime($value)) {
-                    $this->addError($field, 'date');
-                }
-                break;
-                
-            case 'boolean':
-                if (!empty($value) && !is_bool($value) && !in_array($value, [0, 1, '0', '1', 'true', 'false'])) {
-                    $this->addError($field, 'boolean');
-                }
-                break;
-                
-            case 'json':
-                if (!empty($value)) {
-                    json_decode($value);
-                    if (json_last_error() !== JSON_ERROR_NONE) {
-                        $this->addError($field, 'json');
-                    }
-                }
-                break;
+        if (method_exists($this, $methodName)) {
+            $result = call_user_func([$this, $methodName], $field, $value, $params);
+            
+            if ($result !== true) {
+                $this->addError($field, $rule, $params, $result);
+            }
         }
     }
     
-    /**
-     * Obtenir la valeur d'un champ
-     */
-    private function getValue($field) {
-        return $this->data[$field] ?? null;
-    }
-    
-    /**
-     * Ajouter une erreur
-     */
-    private function addError($field, $rule, $parameters = []) {
-        $message = $this->messages[$rule] ?? 'Le champ :field est invalide';
-        
-        // Remplacer les placeholders
-        $message = str_replace(':field', $field, $message);
-        foreach ($parameters as $key => $value) {
-            $message = str_replace(":{$key}", $value, $message);
+    private function addError($field, $rule, $params = [], $customMessage = null) {
+        if ($customMessage && is_string($customMessage)) {
+            $message = $customMessage;
+        } else {
+            $message = $this->messages[$rule] ?? 'Validation failed for {field}';
         }
         
-        if (!isset($this->errors[$field])) {
-            $this->errors[$field] = [];
+        $message = str_replace('{field}', $field, $message);
+        
+        if (!empty($params)) {
+            $message = str_replace('{param}', implode(', ', $params), $message);
         }
         
         $this->errors[$field][] = $message;
     }
     
-    /**
-     * Obtenir les erreurs de validation
-     */
+    // Règles de validation
+    
+    protected function validateRequired($field, $value, $params) {
+        return !empty($value) || $value === '0' || $value === 0;
+    }
+    
+    protected function validateEmail($field, $value, $params) {
+        if (empty($value)) return true; // Skip if empty (use required rule)
+        return Utils::validateEmail($value);
+    }
+    
+    protected function validateMin($field, $value, $params) {
+        if (empty($value)) return true;
+        $min = $params[0] ?? 0;
+        return strlen($value) >= $min;
+    }
+    
+    protected function validateMax($field, $value, $params) {
+        if (empty($value)) return true;
+        $max = $params[0] ?? 0;
+        return strlen($value) <= $max;
+    }
+    
+    protected function validateNumeric($field, $value, $params) {
+        if (empty($value)) return true;
+        return is_numeric($value);
+    }
+    
+    protected function validateInteger($field, $value, $params) {
+        if (empty($value)) return true;
+        return filter_var($value, FILTER_VALIDATE_INT) !== false;
+    }
+    
+    protected function validateUrl($field, $value, $params) {
+        if (empty($value)) return true;
+        return Utils::isValidUrl($value);
+    }
+    
+    protected function validateMatch($field, $value, $params) {
+        if (empty($value)) return true;
+        $matchField = $params[0] ?? '';
+        $matchValue = $this->data[$matchField] ?? '';
+        return $value === $matchValue;
+    }
+    
+    protected function validatePassword($field, $value, $params) {
+        if (empty($value)) return true;
+        return Utils::validatePassword($value);
+    }
+    
+    protected function validateUnique($field, $value, $params) {
+        if (empty($value)) return true;
+        
+        $table = $params[0] ?? '';
+        $column = $params[1] ?? $field;
+        $exceptId = $params[2] ?? null;
+        
+        if (empty($table)) return true;
+        
+        $db = Database::getInstance();
+        $whereCondition = "$column = ?";
+        $whereParams = [$value];
+        
+        if ($exceptId) {
+            $whereCondition .= " AND id != ?";
+            $whereParams[] = $exceptId;
+        }
+        
+        $existing = $db->selectOne($table, 'id', $whereCondition, $whereParams);
+        return !$existing;
+    }
+    
+    protected function validateExists($field, $value, $params) {
+        if (empty($value)) return true;
+        
+        $table = $params[0] ?? '';
+        $column = $params[1] ?? 'id';
+        
+        if (empty($table)) return true;
+        
+        $db = Database::getInstance();
+        $existing = $db->selectOne($table, 'id', "$column = ?", [$value]);
+        return !!$existing;
+    }
+    
+    protected function validateIn($field, $value, $params) {
+        if (empty($value)) return true;
+        return in_array($value, $params);
+    }
+    
+    // Getters
+    
     public function getErrors() {
         return $this->errors;
     }
     
-    /**
-     * Obtenir la première erreur d'un champ
-     */
-    public function getError($field) {
-        return $this->errors[$field][0] ?? null;
+    public function getFirstError($field = null) {
+        if ($field) {
+            return $this->errors[$field][0] ?? null;
+        }
+        
+        foreach ($this->errors as $fieldErrors) {
+            return $fieldErrors[0] ?? null;
+        }
+        
+        return null;
     }
     
-    /**
-     * Vérifier si un champ a des erreurs
-     */
-    public function hasError($field) {
-        return isset($this->errors[$field]) && !empty($this->errors[$field]);
+    public function hasError($field = null) {
+        if ($field) {
+            return isset($this->errors[$field]);
+        }
+        
+        return !empty($this->errors);
     }
     
-    /**
-     * Obtenir les données validées
-     */
     public function getValidatedData() {
         $validated = [];
-        foreach ($this->rules as $field => $rules) {
+        
+        foreach (array_keys($this->rules) as $field) {
             if (isset($this->data[$field])) {
                 $validated[$field] = $this->data[$field];
             }
         }
+        
         return $validated;
     }
     
-    /**
-     * Validation rapide statique
-     */
+    // Méthodes statiques pour validation rapide
+    
     public static function make($data, $rules) {
-        $validator = new self($data, $rules);
+        $validator = new self($data);
+        $validator->validate($rules);
         return $validator;
     }
     
-    /**
-     * Validation rapide avec exception
-     */
-    public static function validateOrFail($data, $rules) {
+    public static function quick($data, $rules) {
         $validator = self::make($data, $rules);
         
-        if (!$validator->validate()) {
-            throw new ValidationException($validator->getErrors());
+        if ($validator->hasError()) {
+            throw new Exception($validator->getFirstError());
         }
         
         return $validator->getValidatedData();
     }
     
-    /**
-     * Définir des messages personnalisés
-     */
-    public function setMessages($messages) {
-        $this->messages = array_merge($this->messages, $messages);
-        return $this;
+    // Règles communes pré-définies
+    
+    public static function userRegistrationRules() {
+        return [
+            'first_name' => 'required|min:2|max:100',
+            'last_name' => 'required|min:2|max:100',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|password',
+            'establishment_id' => 'required|integer|exists:establishments,id'
+        ];
     }
     
-    /**
-     * Ajouter une règle de validation personnalisée
-     */
-    public function addRule($name, $callback, $message = null) {
-        // Pour simplicité, on peut étendre cette classe pour des règles personnalisées
-        if ($message) {
-            $this->messages[$name] = $message;
+    public static function userUpdateRules($userId = null) {
+        $emailRule = 'required|email';
+        if ($userId) {
+            $emailRule .= "|unique:users,email,$userId";
         }
         
-        return $this;
-    }
-}
-
-/**
- * Exception de validation
- */
-class ValidationException extends Exception {
-    private $errors;
-    
-    public function __construct($errors) {
-        $this->errors = $errors;
-        $message = "Validation failed: " . json_encode($errors);
-        parent::__construct($message);
+        return [
+            'first_name' => 'required|min:2|max:100',
+            'last_name' => 'required|min:2|max:100',
+            'email' => $emailRule
+        ];
     }
     
-    public function getErrors() {
-        return $this->errors;
+    public static function passwordChangeRules() {
+        return [
+            'current_password' => 'required',
+            'new_password' => 'required|password',
+            'confirm_password' => 'required|match:new_password'
+        ];
+    }
+    
+    public static function establishmentRules() {
+        return [
+            'name' => 'required|min:3|max:255',
+            'slug' => 'required|min:3|max:100|unique:establishments,slug',
+            'description' => 'max:1000',
+            'contact_email' => 'required|email',
+            'category' => 'required|in:universite,ecole,formation,entreprise,autre'
+        ];
+    }
+    
+    public static function courseRules() {
+        return [
+            'title' => 'required|min:5|max:255',
+            'description' => 'required|min:10',
+            'category' => 'required|max:100',
+            'level' => 'required|in:debutant,intermediaire,avance',
+            'duration' => 'required|integer|min:1',
+            'establishment_id' => 'required|integer|exists:establishments,id'
+        ];
     }
 }
 ?>

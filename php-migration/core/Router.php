@@ -1,243 +1,196 @@
 <?php
 /**
- * Classe Router - Gestionnaire de routage simple
+ * Routeur simple pour l'application PHP
+ * Gestion des routes GET/POST avec authentification
  */
 
 class Router {
     private $routes = [];
-    private $params = [];
+    private $currentRoute = null;
     
-    /**
-     * Ajouter une route GET
-     */
-    public function get($path, $handler, $requireAuth = false) {
-        $this->addRoute('GET', $path, $handler, $requireAuth);
+    public function __construct() {
+        $this->currentRoute = $this->getCurrentRoute();
     }
     
-    /**
-     * Ajouter une route POST
-     */
-    public function post($path, $handler, $requireAuth = false) {
-        $this->addRoute('POST', $path, $handler, $requireAuth);
+    private function getCurrentRoute() {
+        $uri = $_SERVER['REQUEST_URI'];
+        $path = parse_url($uri, PHP_URL_PATH);
+        return rtrim($path, '/') ?: '/';
     }
     
-    /**
-     * Ajouter une route PUT
-     */
-    public function put($path, $handler, $requireAuth = false) {
-        $this->addRoute('PUT', $path, $handler, $requireAuth);
+    public function get($pattern, $handler, $requireAuth = false) {
+        $this->addRoute('GET', $pattern, $handler, $requireAuth);
     }
     
-    /**
-     * Ajouter une route DELETE
-     */
-    public function delete($path, $handler, $requireAuth = false) {
-        $this->addRoute('DELETE', $path, $handler, $requireAuth);
+    public function post($pattern, $handler, $requireAuth = false) {
+        $this->addRoute('POST', $pattern, $handler, $requireAuth);
     }
     
-    /**
-     * Ajouter une route à la liste
-     */
-    private function addRoute($method, $path, $handler, $requireAuth) {
+    public function put($pattern, $handler, $requireAuth = false) {
+        $this->addRoute('PUT', $pattern, $handler, $requireAuth);
+    }
+    
+    public function delete($pattern, $handler, $requireAuth = false) {
+        $this->addRoute('DELETE', $pattern, $handler, $requireAuth);
+    }
+    
+    private function addRoute($method, $pattern, $handler, $requireAuth) {
         $this->routes[] = [
             'method' => $method,
-            'path' => $path,
+            'pattern' => $pattern,
             'handler' => $handler,
-            'require_auth' => $requireAuth,
-            'pattern' => $this->createPattern($path)
+            'requireAuth' => $requireAuth
         ];
     }
     
-    /**
-     * Créer un pattern regex à partir du chemin
-     */
-    private function createPattern($path) {
-        // Remplacer les paramètres {param} par des groupes de capture
-        $pattern = preg_replace('/\{([a-zA-Z0-9_]+)\}/', '([^/]+)', $path);
-        $pattern = str_replace('/', '\/', $pattern);
-        return '/^' . $pattern . '$/';
-    }
-    
-    /**
-     * Traiter la requête actuelle
-     */
-    public function handleRequest() {
+    public function dispatch() {
         $method = $_SERVER['REQUEST_METHOD'];
-        $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-        
-        // Gérer les méthodes HTTP simulées via _method
-        if ($method === 'POST' && isset($_POST['_method'])) {
-            $method = strtoupper($_POST['_method']);
-        }
+        $found = false;
         
         foreach ($this->routes as $route) {
-            if ($route['method'] === $method && preg_match($route['pattern'], $path, $matches)) {
-                // Extraire les paramètres de l'URL
-                $this->extractParams($route['path'], $matches);
+            if ($route['method'] === $method && $this->matchRoute($route['pattern'])) {
+                $found = true;
                 
-                // Vérifier l'authentification si requise
-                if ($route['require_auth'] && !Auth::check()) {
-                    if (strpos($path, '/api/') === 0) {
-                        http_response_code(401);
-                        header('Content-Type: application/json');
-                        echo json_encode(['error' => 'Non authentifié']);
-                        return;
-                    } else {
-                        header('Location: /login');
-                        return;
-                    }
+                // Vérification de l'authentification si requise
+                if ($route['requireAuth'] && !Auth::isAuthenticated()) {
+                    Utils::redirectWithMessage('/login', 'Vous devez être connecté pour accéder à cette page', 'error');
+                    return;
                 }
                 
-                // Inclure le fichier handler
+                // Exécution du handler
                 $this->executeHandler($route['handler']);
-                return;
+                break;
             }
         }
         
-        // Aucune route trouvée - 404
-        $this->handle404();
-    }
-    
-    /**
-     * Extraire les paramètres de l'URL
-     */
-    private function extractParams($routePath, $matches) {
-        $pathParts = explode('/', $routePath);
-        $this->params = [];
-        
-        $matchIndex = 1; // Skip the full match
-        foreach ($pathParts as $part) {
-            if (preg_match('/\{([a-zA-Z0-9_]+)\}/', $part, $paramMatch)) {
-                $paramName = $paramMatch[1];
-                if (isset($matches[$matchIndex])) {
-                    $this->params[$paramName] = $matches[$matchIndex];
-                    $_GET[$paramName] = $matches[$matchIndex]; // Pour compatibilité
-                }
-                $matchIndex++;
-            }
-        }
-    }
-    
-    /**
-     * Exécuter le handler de route
-     */
-    private function executeHandler($handler) {
-        $filePath = ROOT_PATH . '/' . $handler;
-        
-        if (file_exists($filePath)) {
-            // Variables disponibles dans les handlers
-            $params = $this->params;
-            
-            include $filePath;
-        } else {
-            error_log("Handler file not found: " . $filePath);
+        if (!$found) {
             $this->handle404();
         }
     }
     
-    /**
-     * Gérer les erreurs 404
-     */
+    private function matchRoute($pattern) {
+        // Support des routes avec paramètres simples
+        if ($pattern === $this->currentRoute) {
+            return true;
+        }
+        
+        // Support des patterns avec :param
+        $pattern = preg_replace('/:[^\/]+/', '([^/]+)', $pattern);
+        $pattern = '#^' . $pattern . '$#';
+        
+        return preg_match($pattern, $this->currentRoute);
+    }
+    
+    private function executeHandler($handler) {
+        if (is_string($handler)) {
+            // Handler est un fichier
+            $filepath = ROOT_PATH . '/' . $handler;
+            
+            if (file_exists($filepath)) {
+                require $filepath;
+            } else {
+                Utils::log("Handler file not found: $filepath", 'ERROR');
+                $this->handle404();
+            }
+        } elseif (is_callable($handler)) {
+            // Handler est une fonction
+            call_user_func($handler);
+        } else {
+            Utils::log("Invalid handler type: " . gettype($handler), 'ERROR');
+            $this->handle404();
+        }
+    }
+    
     private function handle404() {
         http_response_code(404);
         
-        $uri = $_SERVER['REQUEST_URI'];
-        if (strpos($uri, '/api/') === 0) {
+        $pageTitle = "Page non trouvée - StacGateLMS";
+        $pageDescription = "La page demandée n'existe pas.";
+        
+        require_once ROOT_PATH . '/includes/header.php';
+        ?>
+        
+        <div style="padding: 4rem 0; text-align: center; margin-top: 80px;">
+            <div class="container">
+                <div class="glassmorphism p-8">
+                    <div style="font-size: 8rem; margin-bottom: 2rem; opacity: 0.5;">🔍</div>
+                    <h1 style="font-size: 3rem; margin-bottom: 1rem;">Page non trouvée</h1>
+                    <p style="font-size: 1.2rem; opacity: 0.8; margin-bottom: 2rem;">
+                        La page que vous recherchez n'existe pas ou a été déplacée.
+                    </p>
+                    <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                        <a href="/" class="glass-button">
+                            🏠 Accueil
+                        </a>
+                        <a href="/portal" class="glass-button glass-button-secondary">
+                            🏛️ Portail
+                        </a>
+                        <?php if (Auth::isAuthenticated()): ?>
+                            <a href="/dashboard" class="glass-button glass-button-secondary">
+                                📊 Dashboard
+                            </a>
+                        <?php else: ?>
+                            <a href="/login" class="glass-button glass-button-secondary">
+                                🔐 Connexion
+                            </a>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <?php
+        require_once ROOT_PATH . '/includes/footer.php';
+    }
+    
+    public function getRoute() {
+        return $this->currentRoute;
+    }
+    
+    public function getRoutes() {
+        return $this->routes;
+    }
+    
+    // Utilitaire pour redirection
+    public function redirect($url, $permanent = false) {
+        $statusCode = $permanent ? 301 : 302;
+        http_response_code($statusCode);
+        header("Location: $url");
+        exit;
+    }
+    
+    // Méthode pour générer des URLs
+    public function url($path = '') {
+        $baseUrl = rtrim(BASE_URL, '/');
+        $path = ltrim($path, '/');
+        return $baseUrl . '/' . $path;
+    }
+    
+    // Support API JSON
+    public function api($pattern, $handler, $method = 'GET') {
+        $this->addRoute($method, '/api' . $pattern, function() use ($handler) {
             header('Content-Type: application/json');
-            echo json_encode(['error' => 'Endpoint non trouvé']);
-        } else {
-            include ROOT_PATH . '/pages/not-found.php';
-        }
+            
+            try {
+                if (is_callable($handler)) {
+                    $result = call_user_func($handler);
+                } else {
+                    $result = ['error' => 'Handler invalide'];
+                }
+                
+                echo json_encode($result);
+            } catch (Exception $e) {
+                http_response_code(500);
+                echo json_encode(['error' => $e->getMessage()]);
+            }
+        }, false);
     }
     
-    /**
-     * Obtenir un paramètre de route
-     */
-    public function getParam($name, $default = null) {
-        return isset($this->params[$name]) ? $this->params[$name] : $default;
-    }
-    
-    /**
-     * Obtenir tous les paramètres
-     */
-    public function getParams() {
-        return $this->params;
-    }
-    
-    /**
-     * Redirection
-     */
-    public static function redirect($path, $code = 302) {
-        http_response_code($code);
-        header("Location: " . $path);
-        exit;
-    }
-    
-    /**
-     * Générer une URL avec paramètres
-     */
-    public static function url($path, $params = []) {
-        $url = BASE_URL . $path;
-        
-        if (!empty($params)) {
-            $url .= '?' . http_build_query($params);
-        }
-        
-        return $url;
-    }
-    
-    /**
-     * Vérifier si la requête est AJAX/API
-     */
-    public static function isAjax() {
-        return isset($_SERVER['HTTP_X_REQUESTED_WITH']) && 
-               strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
-    }
-    
-    /**
-     * Vérifier si la requête est pour l'API
-     */
-    public static function isApi() {
-        return strpos($_SERVER['REQUEST_URI'], '/api/') === 0;
-    }
-    
-    /**
-     * Obtenir les données JSON du body de la requête
-     */
-    public static function getJsonInput() {
-        $input = file_get_contents('php://input');
-        return json_decode($input, true);
-    }
-    
-    /**
-     * Envoyer une réponse JSON
-     */
-    public static function jsonResponse($data, $code = 200) {
-        http_response_code($code);
-        header('Content-Type: application/json');
-        echo json_encode($data, JSON_UNESCAPED_UNICODE);
-        exit;
-    }
-    
-    /**
-     * Envoyer une réponse d'erreur JSON
-     */
-    public static function jsonError($message, $code = 400, $details = null) {
-        $response = ['error' => $message];
-        if ($details) {
-            $response['details'] = $details;
-        }
-        
-        self::jsonResponse($response, $code);
-    }
-    
-    /**
-     * Middleware pour CORS (si nécessaire)
-     */
-    public static function enableCors() {
+    // Middleware pour CORS
+    public function enableCORS() {
         header('Access-Control-Allow-Origin: *');
         header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization');
         
         if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
             http_response_code(200);

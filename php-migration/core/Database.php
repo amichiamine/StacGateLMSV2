@@ -1,6 +1,7 @@
 <?php
 /**
- * Classe Database - Gestionnaire de base de données avec support MySQL/PostgreSQL
+ * Gestionnaire de base de données
+ * Abstraction PDO avec support MySQL/PostgreSQL
  */
 
 class Database {
@@ -24,8 +25,9 @@ class Database {
         try {
             $dsn = $this->getDSN();
             $this->pdo = new PDO($dsn, $this->config['username'], $this->config['password'], $this->config['options']);
+            $this->initializeTables();
         } catch (PDOException $e) {
-            error_log("Database connection error: " . $e->getMessage());
+            Utils::log("Database connection failed: " . $e->getMessage(), 'ERROR');
             throw new Exception("Erreur de connexion à la base de données");
         }
     }
@@ -41,323 +43,245 @@ class Database {
         }
     }
     
-    public function getPDO() {
-        return $this->pdo;
-    }
-    
-    /**
-     * Exécuter une requête SELECT
-     */
-    public function select($sql, $params = []) {
-        try {
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute($params);
-            return $stmt->fetchAll();
-        } catch (PDOException $e) {
-            error_log("Database select error: " . $e->getMessage() . " SQL: " . $sql);
-            throw new Exception("Erreur lors de l'exécution de la requête");
-        }
-    }
-    
-    /**
-     * Exécuter une requête SELECT et retourner une seule ligne
-     */
-    public function selectOne($sql, $params = []) {
-        try {
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute($params);
-            return $stmt->fetch();
-        } catch (PDOException $e) {
-            error_log("Database selectOne error: " . $e->getMessage() . " SQL: " . $sql);
-            throw new Exception("Erreur lors de l'exécution de la requête");
-        }
-    }
-    
-    /**
-     * Insérer des données
-     */
-    public function insert($table, $data) {
-        try {
-            $columns = implode(',', array_keys($data));
-            $placeholders = ':' . implode(', :', array_keys($data));
-            
-            $sql = "INSERT INTO {$table} ({$columns}) VALUES ({$placeholders})";
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute($data);
-            
-            return $this->pdo->lastInsertId();
-        } catch (PDOException $e) {
-            error_log("Database insert error: " . $e->getMessage() . " Table: " . $table);
-            throw new Exception("Erreur lors de l'insertion des données");
-        }
-    }
-    
-    /**
-     * Mettre à jour des données
-     */
-    public function update($table, $data, $where, $whereParams = []) {
-        try {
-            $set = [];
-            foreach (array_keys($data) as $key) {
-                $set[] = "{$key} = :{$key}";
+    private function initializeTables() {
+        global $create_tables_sql;
+        
+        foreach ($create_tables_sql as $table_name => $sql) {
+            try {
+                $this->pdo->exec($sql);
+            } catch (PDOException $e) {
+                Utils::log("Table creation failed for $table_name: " . $e->getMessage(), 'ERROR');
             }
-            $setClause = implode(', ', $set);
-            
-            $sql = "UPDATE {$table} SET {$setClause} WHERE {$where}";
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute(array_merge($data, $whereParams));
-            
-            return $stmt->rowCount();
-        } catch (PDOException $e) {
-            error_log("Database update error: " . $e->getMessage() . " Table: " . $table);
-            throw new Exception("Erreur lors de la mise à jour des données");
+        }
+        
+        $this->seedDefaultData();
+    }
+    
+    private function seedDefaultData() {
+        // Vérifier si des données existent déjà
+        $stmt = $this->query("SELECT COUNT(*) as count FROM establishments");
+        $result = $stmt->fetch();
+        
+        if ($result['count'] == 0) {
+            $this->seedEstablishments();
+            $this->seedUsers();
+            $this->seedCourses();
         }
     }
     
-    /**
-     * Supprimer des données
-     */
-    public function delete($table, $where, $whereParams = []) {
-        try {
-            $sql = "DELETE FROM {$table} WHERE {$where}";
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute($whereParams);
-            
-            return $stmt->rowCount();
-        } catch (PDOException $e) {
-            error_log("Database delete error: " . $e->getMessage() . " Table: " . $table);
-            throw new Exception("Erreur lors de la suppression des données");
+    private function seedEstablishments() {
+        $establishments = [
+            [
+                'id' => 1,
+                'name' => 'StacGate Academy',
+                'slug' => 'stacgate-academy',
+                'description' => 'École de formation professionnelle en technologie',
+                'logo' => '/logos/stacgate.png',
+                'domain' => 'stacgate.academy',
+                'is_active' => 1,
+                'settings' => json_encode(['theme' => 'violet', 'language' => 'fr'])
+            ],
+            [
+                'id' => 2,
+                'name' => 'TechPro Institute',
+                'slug' => 'techpro-institute',
+                'description' => 'Institut de formation technique avancée',
+                'logo' => '/logos/techpro.png',
+                'domain' => 'techpro.institute',
+                'is_active' => 1,
+                'settings' => json_encode(['theme' => 'blue', 'language' => 'fr'])
+            ]
+        ];
+        
+        foreach ($establishments as $est) {
+            $this->insert('establishments', $est);
         }
     }
     
-    /**
-     * Pagination des résultats
-     */
-    public function paginate($sql, $params = [], $page = 1, $perPage = 20) {
-        try {
-            // Compter le total
-            $countSql = "SELECT COUNT(*) as total FROM (" . $sql . ") as count_query";
-            $stmt = $this->pdo->prepare($countSql);
-            $stmt->execute($params);
-            $total = $stmt->fetch()['total'];
-            
-            // Calculer les métadonnées de pagination
-            $totalPages = ceil($total / $perPage);
-            $offset = ($page - 1) * $perPage;
-            
-            // Requête paginée
-            $paginatedSql = $sql . " LIMIT {$perPage} OFFSET {$offset}";
-            $stmt = $this->pdo->prepare($paginatedSql);
-            $stmt->execute($params);
-            $data = $stmt->fetchAll();
-            
-            return [
-                'data' => $data,
-                'pagination' => [
-                    'current_page' => $page,
-                    'per_page' => $perPage,
-                    'total' => $total,
-                    'total_pages' => $totalPages,
-                    'has_next' => $page < $totalPages,
-                    'has_prev' => $page > 1
-                ]
-            ];
-        } catch (PDOException $e) {
-            error_log("Database paginate error: " . $e->getMessage() . " SQL: " . $sql);
-            throw new Exception("Erreur lors de la pagination");
+    private function seedUsers() {
+        $users = [
+            [
+                'establishment_id' => 1,
+                'email' => 'admin@stacgate.fr',
+                'first_name' => 'Administrateur',
+                'last_name' => 'Principal',
+                'password' => password_hash('admin123', PASSWORD_ARGON2ID),
+                'role' => 'admin',
+                'is_active' => 1
+            ],
+            [
+                'establishment_id' => 1,
+                'email' => 'formateur@stacgate.fr',
+                'first_name' => 'Jean',
+                'last_name' => 'Formateur',
+                'password' => password_hash('formateur123', PASSWORD_ARGON2ID),
+                'role' => 'formateur',
+                'is_active' => 1
+            ],
+            [
+                'establishment_id' => 1,
+                'email' => 'apprenant@stacgate.fr',
+                'first_name' => 'Marie',
+                'last_name' => 'Apprenante',
+                'password' => password_hash('apprenant123', PASSWORD_ARGON2ID),
+                'role' => 'apprenant',
+                'is_active' => 1
+            ]
+        ];
+        
+        foreach ($users as $user) {
+            $this->insert('users', $user);
         }
     }
     
-    /**
-     * Insérer avec timestamps automatiques
-     */
-    public function insertWithTimestamps($table, $data) {
-        $data['created_at'] = date('Y-m-d H:i:s');
-        $data['updated_at'] = date('Y-m-d H:i:s');
-        return $this->insert($table, $data);
-    }
-    
-    /**
-     * Mettre à jour avec timestamp automatique
-     */
-    public function updateWithTimestamp($table, $data, $where, $whereParams = []) {
-        $data['updated_at'] = date('Y-m-d H:i:s');
-        return $this->update($table, $data, $where, $whereParams);
-    }
-            $sql = "UPDATE {$table} SET {$setClause} WHERE {$where}";
-            $stmt = $this->pdo->prepare($sql);
-            
-            // Combiner les paramètres de données et de condition WHERE
-            $allParams = array_merge($data, $whereParams);
-            $stmt->execute($allParams);
-            
-            return $stmt->rowCount();
-        } catch (PDOException $e) {
-            error_log("Database update error: " . $e->getMessage() . " Table: " . $table);
-            throw new Exception("Erreur lors de la mise à jour des données");
+    private function seedCourses() {
+        $courses = [
+            [
+                'establishment_id' => 1,
+                'title' => 'Introduction au Développement Web',
+                'description' => 'Apprenez les bases du développement web avec HTML, CSS et JavaScript',
+                'short_description' => 'Formation complète aux technologies web fondamentales',
+                'category' => 'web',
+                'type' => 'cours',
+                'price' => 0.00,
+                'is_free' => 1,
+                'duration' => 120,
+                'level' => 'debutant',
+                'instructor_id' => 2,
+                'is_public' => 1,
+                'is_active' => 1,
+                'tags' => 'html,css,javascript,web'
+            ],
+            [
+                'establishment_id' => 1,
+                'title' => 'React Avancé',
+                'description' => 'Maîtrisez React avec les hooks, le state management et les patterns avancés',
+                'short_description' => 'Formation React pour développeurs expérimentés',
+                'category' => 'frontend',
+                'type' => 'cours',
+                'price' => 99.00,
+                'is_free' => 0,
+                'duration' => 180,
+                'level' => 'avance',
+                'instructor_id' => 2,
+                'is_public' => 1,
+                'is_active' => 1,
+                'tags' => 'react,javascript,frontend,hooks'
+            ]
+        ];
+        
+        foreach ($courses as $course) {
+            $this->insert('courses', $course);
         }
     }
     
-    /**
-     * Supprimer des données
-     */
-    public function delete($table, $where, $params = []) {
-        try {
-            $sql = "DELETE FROM {$table} WHERE {$where}";
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute($params);
-            
-            return $stmt->rowCount();
-        } catch (PDOException $e) {
-            error_log("Database delete error: " . $e->getMessage() . " Table: " . $table);
-            throw new Exception("Erreur lors de la suppression des données");
-        }
-    }
-    
-    /**
-     * Exécuter une requête custom
-     */
-    public function execute($sql, $params = []) {
+    public function query($sql, $params = []) {
         try {
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute($params);
             return $stmt;
         } catch (PDOException $e) {
-            error_log("Database execute error: " . $e->getMessage() . " SQL: " . $sql);
+            Utils::log("Query failed: $sql - " . $e->getMessage(), 'ERROR');
             throw new Exception("Erreur lors de l'exécution de la requête");
         }
     }
     
-    /**
-     * Démarrer une transaction
-     */
+    public function insert($table, $data) {
+        $columns = implode(',', array_keys($data));
+        $placeholders = ':' . implode(', :', array_keys($data));
+        
+        $sql = "INSERT INTO $table ($columns) VALUES ($placeholders)";
+        
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($data);
+            return $this->pdo->lastInsertId();
+        } catch (PDOException $e) {
+            Utils::log("Insert failed: $sql - " . $e->getMessage(), 'ERROR');
+            throw new Exception("Erreur lors de l'insertion");
+        }
+    }
+    
+    public function update($table, $data, $where, $whereParams = []) {
+        $setParts = [];
+        foreach (array_keys($data) as $key) {
+            $setParts[] = "$key = :$key";
+        }
+        $setClause = implode(', ', $setParts);
+        
+        $sql = "UPDATE $table SET $setClause WHERE $where";
+        
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute(array_merge($data, $whereParams));
+            return $stmt->rowCount();
+        } catch (PDOException $e) {
+            Utils::log("Update failed: $sql - " . $e->getMessage(), 'ERROR');
+            throw new Exception("Erreur lors de la mise à jour");
+        }
+    }
+    
+    public function delete($table, $where, $params = []) {
+        $sql = "DELETE FROM $table WHERE $where";
+        
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->rowCount();
+        } catch (PDOException $e) {
+            Utils::log("Delete failed: $sql - " . $e->getMessage(), 'ERROR');
+            throw new Exception("Erreur lors de la suppression");
+        }
+    }
+    
+    public function select($table, $columns = '*', $where = '', $params = [], $orderBy = '', $limit = '') {
+        $sql = "SELECT $columns FROM $table";
+        
+        if ($where) {
+            $sql .= " WHERE $where";
+        }
+        
+        if ($orderBy) {
+            $sql .= " ORDER BY $orderBy";
+        }
+        
+        if ($limit) {
+            $sql .= " LIMIT $limit";
+        }
+        
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll();
+        } catch (PDOException $e) {
+            Utils::log("Select failed: $sql - " . $e->getMessage(), 'ERROR');
+            throw new Exception("Erreur lors de la sélection");
+        }
+    }
+    
+    public function selectOne($table, $columns = '*', $where = '', $params = []) {
+        $results = $this->select($table, $columns, $where, $params, '', '1');
+        return empty($results) ? null : $results[0];
+    }
+    
     public function beginTransaction() {
         return $this->pdo->beginTransaction();
     }
     
-    /**
-     * Valider une transaction
-     */
     public function commit() {
         return $this->pdo->commit();
     }
     
-    /**
-     * Annuler une transaction
-     */
     public function rollback() {
-        return $this->pdo->rollback();
+        return $this->pdo->rollBack();
     }
     
-    /**
-     * Vérifier si on est dans une transaction
-     */
-    public function inTransaction() {
-        return $this->pdo->inTransaction();
+    public function lastInsertId() {
+        return $this->pdo->lastInsertId();
     }
     
-    /**
-     * Compter les lignes d'une table
-     */
-    public function count($table, $where = '1=1', $params = []) {
-        $sql = "SELECT COUNT(*) as count FROM {$table} WHERE {$where}";
-        $result = $this->selectOne($sql, $params);
-        return (int) $result['count'];
-    }
-    
-    /**
-     * Vérifier si un enregistrement existe
-     */
-    public function exists($table, $where, $params = []) {
-        return $this->count($table, $where, $params) > 0;
-    }
-    
-    /**
-     * Pagination des résultats
-     */
-    public function paginate($sql, $params = [], $page = 1, $perPage = 10) {
-        // Compter le total
-        $countSql = preg_replace('/^SELECT.*?FROM/i', 'SELECT COUNT(*) as total FROM', $sql);
-        $total = $this->selectOne($countSql, $params)['total'];
-        
-        // Calculer offset
-        $offset = ($page - 1) * $perPage;
-        
-        // Ajouter LIMIT et OFFSET selon le type de DB
-        if (IS_POSTGRESQL) {
-            $sql .= " LIMIT {$perPage} OFFSET {$offset}";
-        } else {
-            $sql .= " LIMIT {$offset}, {$perPage}";
-        }
-        
-        $data = $this->select($sql, $params);
-        
-        return [
-            'data' => $data,
-            'total' => (int) $total,
-            'page' => $page,
-            'per_page' => $perPage,
-            'total_pages' => ceil($total / $perPage),
-            'has_next' => $page < ceil($total / $perPage),
-            'has_prev' => $page > 1
-        ];
-    }
-    
-    /**
-     * Recherche full-text simple
-     */
-    public function search($table, $columns, $term, $where = '1=1', $params = []) {
-        $searchConditions = [];
-        
-        foreach ($columns as $column) {
-            if (IS_POSTGRESQL) {
-                $searchConditions[] = "{$column} ILIKE :search_term";
-            } else {
-                $searchConditions[] = "{$column} LIKE :search_term";
-            }
-        }
-        
-        $searchClause = '(' . implode(' OR ', $searchConditions) . ')';
-        $sql = "SELECT * FROM {$table} WHERE {$where} AND {$searchClause}";
-        
-        $params['search_term'] = '%' . $term . '%';
-        
-        return $this->select($sql, $params);
-    }
-    
-    /**
-     * Mise à jour des timestamps automatiquement
-     */
-    private function addTimestamps($data, $isUpdate = false) {
-        if (IS_POSTGRESQL) {
-            if (!$isUpdate) {
-                $data['created_at'] = date('Y-m-d H:i:s');
-            }
-            $data['updated_at'] = date('Y-m-d H:i:s');
-        } else {
-            // MySQL gère automatiquement avec DEFAULT CURRENT_TIMESTAMP
-            if (!$isUpdate) {
-                $data['created_at'] = date('Y-m-d H:i:s');
-            }
-        }
-        
-        return $data;
-    }
-    
-    /**
-     * Insert avec timestamps automatiques
-     */
-    public function insertWithTimestamps($table, $data) {
-        $data = $this->addTimestamps($data, false);
-        return $this->insert($table, $data);
-    }
-    
-    /**
-     * Update avec timestamps automatiques
-     */
-    public function updateWithTimestamps($table, $data, $where, $whereParams = []) {
-        $data = $this->addTimestamps($data, true);
-        return $this->update($table, $data, $where, $whereParams);
+    public function getPDO() {
+        return $this->pdo;
     }
 }
 ?>

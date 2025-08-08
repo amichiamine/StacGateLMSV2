@@ -1,302 +1,273 @@
 <?php
 /**
- * Classe Auth - Gestion de l'authentification et des sessions
+ * Gestionnaire d'authentification et autorisation
+ * Support des rôles hiérarchiques et sessions sécurisées
  */
 
 class Auth {
+    private static $currentUser = null;
     
-    /**
-     * Vérifier si l'utilisateur est connecté
-     */
-    public static function check() {
-        return isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
+    public static function isAuthenticated() {
+        return isset($_SESSION['user_id']) && $_SESSION['user_id'] > 0;
     }
     
-    /**
-     * Obtenir l'utilisateur connecté
-     */
     public static function user() {
-        if (!self::check()) {
-            return null;
+        if (self::$currentUser === null && self::isAuthenticated()) {
+            $db = Database::getInstance();
+            self::$currentUser = $db->selectOne('users', '*', 'id = ? AND is_active = 1', [$_SESSION['user_id']]);
         }
         
+        return self::$currentUser;
+    }
+    
+    public static function login($email, $password, $establishmentId = null) {
         $db = Database::getInstance();
-        return $db->selectOne(
-            "SELECT u.*, e.name as establishment_name, e.slug as establishment_slug 
-             FROM users u 
-             LEFT JOIN establishments e ON u.establishment_id = e.id 
-             WHERE u.id = :user_id",
-            ['user_id' => $_SESSION['user_id']]
-        );
+        
+        // Préparer la condition WHERE
+        $whereCondition = 'email = ? AND is_active = 1';
+        $params = [$email];
+        
+        if ($establishmentId) {
+            $whereCondition .= ' AND establishment_id = ?';
+            $params[] = $establishmentId;
+        }
+        
+        $user = $db->selectOne('users', '*', $whereCondition, $params);
+        
+        if ($user && password_verify($password, $user['password'])) {
+            // Créer la session
+            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['user_email'] = $user['email'];
+            $_SESSION['user_role'] = $user['role'];
+            $_SESSION['establishment_id'] = $user['establishment_id'];
+            $_SESSION['last_activity'] = time();
+            
+            // Mettre à jour la dernière connexion
+            $db->update('users', ['last_login_at' => date('Y-m-d H:i:s')], 'id = ?', [$user['id']]);
+            
+            self::$currentUser = $user;
+            
+            Utils::log("User logged in: {$user['email']} (ID: {$user['id']})", 'INFO');
+            
+            return $user;
+        }
+        
+        Utils::log("Failed login attempt for email: $email", 'WARNING');
+        return false;
     }
     
-    /**
-     * Obtenir l'ID de l'utilisateur connecté
-     */
-    public static function id() {
-        return self::check() ? $_SESSION['user_id'] : null;
-    }
-    
-    /**
-     * Connecter un utilisateur
-     */
-    public static function login($user) {
-        $_SESSION['user_id'] = $user['id'];
-        $_SESSION['establishment_id'] = $user['establishment_id'];
-        $_SESSION['user_role'] = $user['role'];
-        $_SESSION['login_time'] = time();
-        
-        // Régénérer l'ID de session pour sécurité
-        session_regenerate_id(true);
-        
-        // Mettre à jour la dernière connexion
-        $db = Database::getInstance();
-        $db->update(
-            'users',
-            ['last_login_at' => date('Y-m-d H:i:s')],
-            'id = :id',
-            ['id' => $user['id']]
-        );
-        
-        return true;
-    }
-    
-    /**
-     * Déconnecter l'utilisateur
-     */
     public static function logout() {
-        // Nettoyer toutes les variables de session
-        $_SESSION = [];
-        
-        // Détruire le cookie de session s'il existe
-        if (ini_get("session.use_cookies")) {
-            $params = session_get_cookie_params();
-            setcookie(session_name(), '', time() - 42000,
-                $params["path"], $params["domain"],
-                $params["secure"], $params["httponly"]
-            );
+        if (self::isAuthenticated()) {
+            $user = self::user();
+            if ($user) {
+                Utils::log("User logged out: {$user['email']} (ID: {$user['id']})", 'INFO');
+            }
         }
         
         // Détruire la session
+        session_unset();
         session_destroy();
+        self::$currentUser = null;
         
-        return true;
+        // Démarrer une nouvelle session
+        session_start();
     }
     
-    /**
-     * Hacher un mot de passe
-     */
+    public static function register($data) {
+        $db = Database::getInstance();
+        
+        // Vérifier si l'email existe déjà pour cet établissement
+        $existing = $db->selectOne('users', 'id', 'email = ? AND establishment_id = ?', 
+            [$data['email'], $data['establishment_id']]);
+        
+        if ($existing) {
+            throw new Exception('Un utilisateur avec cet email existe déjà dans cet établissement');
+        }
+        
+        // Valider l'établissement
+        $establishment = $db->selectOne('establishments', 'id', 'id = ? AND is_active = 1', 
+            [$data['establishment_id']]);
+        
+        if (!$establishment) {
+            throw new Exception('Établissement invalide ou inactif');
+        }
+        
+        // Préparer les données utilisateur
+        $userData = [
+            'establishment_id' => $data['establishment_id'],
+            'email' => $data['email'],
+            'first_name' => $data['first_name'],
+            'last_name' => $data['last_name'],
+            'password' => password_hash($data['password'], PASSWORD_ARGON2ID),
+            'role' => $data['role'] ?? 'apprenant',
+            'is_active' => 1,
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s')
+        ];
+        
+        $userId = $db->insert('users', $userData);
+        
+        Utils::log("New user registered: {$data['email']} (ID: $userId)", 'INFO');
+        
+        return $userId;
+    }
+    
+    public static function hasRole($requiredRole) {
+        $user = self::user();
+        if (!$user) return false;
+        
+        $userRoleLevel = USER_ROLES[$user['role']] ?? 0;
+        $requiredRoleLevel = USER_ROLES[$requiredRole] ?? 0;
+        
+        return $userRoleLevel >= $requiredRoleLevel;
+    }
+    
+    public static function requireAuth() {
+        if (!self::isAuthenticated()) {
+            Utils::redirectWithMessage('/login', 'Vous devez être connecté pour accéder à cette page', 'error');
+            exit;
+        }
+        
+        // Vérifier l'expiration de session
+        if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > SESSION_LIFETIME) {
+            self::logout();
+            Utils::redirectWithMessage('/login', 'Votre session a expiré', 'warning');
+            exit;
+        }
+        
+        $_SESSION['last_activity'] = time();
+    }
+    
+    public static function requireRole($requiredRole) {
+        self::requireAuth();
+        
+        if (!self::hasRole($requiredRole)) {
+            Utils::redirectWithMessage('/dashboard', 'Vous n\'avez pas les permissions nécessaires', 'error');
+            exit;
+        }
+    }
+    
     public static function hashPassword($password) {
-        return password_hash($password, PASSWORD_ARGON2ID, [
-            'memory_cost' => 65536, // 64 MB
-            'time_cost' => 4,       // 4 iterations
-            'threads' => 3,         // 3 threads
-        ]);
+        return password_hash($password, PASSWORD_ARGON2ID);
     }
     
-    /**
-     * Vérifier un mot de passe
-     */
     public static function verifyPassword($password, $hash) {
         return password_verify($password, $hash);
     }
     
-    /**
-     * Tentative de connexion
-     */
-    public static function attempt($email, $password, $establishmentId = null) {
-        $db = Database::getInstance();
-        
-        // Si pas d'establishment spécifié, chercher dans tous les établissements
-        if ($establishmentId) {
-            $user = $db->selectOne(
-                "SELECT * FROM users WHERE email = :email AND establishment_id = :establishment_id AND is_active = " . (IS_POSTGRESQL ? 'TRUE' : '1'),
-                ['email' => $email, 'establishment_id' => $establishmentId]
-            );
-        } else {
-            // Chercher l'utilisateur dans tous les établissements
-            $user = $db->selectOne(
-                "SELECT * FROM users WHERE email = :email AND is_active = " . (IS_POSTGRESQL ? 'TRUE' : '1'),
-                ['email' => $email]
-            );
-        }
-        
-        if (!$user) {
-            return false;
-        }
-        
-        // Vérifier le mot de passe
-        if (!self::verifyPassword($password, $user['password'])) {
-            return false;
-        }
-        
-        // Connecter l'utilisateur
-        self::login($user);
-        
-        return $user;
-    }
-    
-    /**
-     * Vérifier le rôle de l'utilisateur
-     */
-    public static function hasRole($requiredRole) {
-        $user = self::user();
-        if (!$user) {
-            return false;
-        }
-        
-        $roleHierarchy = USER_ROLES;
-        $userLevel = $roleHierarchy[$user['role']] ?? 0;
-        $requiredLevel = $roleHierarchy[$requiredRole] ?? 0;
-        
-        return $userLevel >= $requiredLevel;
-    }
-    
-    /**
-     * Vérifier si l'utilisateur a accès à un établissement
-     */
-    public static function hasEstablishmentAccess($establishmentId) {
-        $user = self::user();
-        if (!$user) {
-            return false;
-        }
-        
-        // Super admin a accès à tout
-        if ($user['role'] === 'super_admin') {
-            return true;
-        }
-        
-        return $user['establishment_id'] == $establishmentId;
-    }
-    
-    /**
-     * Middleware d'authentification
-     */
-    public static function requireAuth() {
-        if (!self::check()) {
-            if (Router::isApi()) {
-                Router::jsonError('Non authentifié', 401);
-            } else {
-                Router::redirect('/login');
-            }
-        }
-    }
-    
-    /**
-     * Middleware de vérification de rôle
-     */
-    public static function requireRole($role) {
-        self::requireAuth();
-        
-        if (!self::hasRole($role)) {
-            if (Router::isApi()) {
-                Router::jsonError('Accès refusé', 403);
-            } else {
-                Router::redirect('/dashboard');
-            }
-        }
-    }
-    
-    /**
-     * Middleware de vérification d'établissement
-     */
-    public static function requireEstablishment($establishmentId) {
-        self::requireAuth();
-        
-        if (!self::hasEstablishmentAccess($establishmentId)) {
-            if (Router::isApi()) {
-                Router::jsonError('Accès à cet établissement refusé', 403);
-            } else {
-                Router::redirect('/dashboard');
-            }
-        }
-    }
-    
-    /**
-     * Générer un token de réinitialisation de mot de passe
-     */
-    public static function generateResetToken($userId) {
+    public static function generatePasswordResetToken($userId) {
         $token = bin2hex(random_bytes(32));
         $expiry = date('Y-m-d H:i:s', time() + 3600); // 1 heure
         
         $db = Database::getInstance();
-        
-        // Supprimer les anciens tokens
-        $db->delete('password_resets', 'user_id = :user_id', ['user_id' => $userId]);
-        
-        // Insérer le nouveau token
-        $db->insert('password_resets', [
-            'user_id' => $userId,
-            'token' => $token,
-            'expires_at' => $expiry,
-            'created_at' => date('Y-m-d H:i:s')
-        ]);
+        $db->update('users', [
+            'password_reset_token' => $token,
+            'password_reset_expires' => $expiry
+        ], 'id = ?', [$userId]);
         
         return $token;
     }
     
-    /**
-     * Vérifier un token de réinitialisation
-     */
-    public static function verifyResetToken($token) {
+    public static function validatePasswordResetToken($token) {
         $db = Database::getInstance();
-        
-        return $db->selectOne(
-            "SELECT * FROM password_resets 
-             WHERE token = :token AND expires_at > :now",
-            [
-                'token' => $token,
-                'now' => date('Y-m-d H:i:s')
-            ]
-        );
+        return $db->selectOne('users', '*', 
+            'password_reset_token = ? AND password_reset_expires > NOW() AND is_active = 1', 
+            [$token]);
     }
     
-    /**
-     * Réinitialiser le mot de passe
-     */
     public static function resetPassword($token, $newPassword) {
-        $reset = self::verifyResetToken($token);
-        if (!$reset) {
-            return false;
+        $user = self::validatePasswordResetToken($token);
+        if (!$user) {
+            throw new Exception('Token de réinitialisation invalide ou expiré');
         }
         
         $db = Database::getInstance();
+        $db->update('users', [
+            'password' => self::hashPassword($newPassword),
+            'password_reset_token' => null,
+            'password_reset_expires' => null,
+            'updated_at' => date('Y-m-d H:i:s')
+        ], 'id = ?', [$user['id']]);
         
-        // Mettre à jour le mot de passe
-        $hashedPassword = self::hashPassword($newPassword);
-        $db->update(
-            'users',
-            ['password' => $hashedPassword],
-            'id = :id',
-            ['id' => $reset['user_id']]
-        );
-        
-        // Supprimer le token utilisé
-        $db->delete('password_resets', 'token = :token', ['token' => $token]);
+        Utils::log("Password reset for user: {$user['email']} (ID: {$user['id']})", 'INFO');
         
         return true;
     }
     
-    /**
-     * Vérifier si la session est expirée
-     */
-    public static function isSessionExpired() {
-        if (!isset($_SESSION['login_time'])) {
-            return true;
+    public static function updateProfile($userId, $data) {
+        $db = Database::getInstance();
+        
+        // Valider les données
+        $allowedFields = ['first_name', 'last_name', 'email', 'bio', 'avatar', 'timezone', 'language', 'preferences'];
+        $updateData = [];
+        
+        foreach ($allowedFields as $field) {
+            if (isset($data[$field])) {
+                $updateData[$field] = $data[$field];
+            }
         }
         
-        return (time() - $_SESSION['login_time']) > SESSION_LIFETIME;
+        if (empty($updateData)) {
+            throw new Exception('Aucune donnée valide à mettre à jour');
+        }
+        
+        $updateData['updated_at'] = date('Y-m-d H:i:s');
+        
+        $affected = $db->update('users', $updateData, 'id = ?', [$userId]);
+        
+        if ($affected > 0) {
+            // Recharger l'utilisateur actuel si c'est lui qui est modifié
+            if (self::isAuthenticated() && $_SESSION['user_id'] == $userId) {
+                self::$currentUser = null; // Force reload
+            }
+            
+            Utils::log("User profile updated: ID $userId", 'INFO');
+        }
+        
+        return $affected > 0;
     }
     
-    /**
-     * Rafraîchir la session
-     */
-    public static function refreshSession() {
-        if (self::check()) {
-            $_SESSION['login_time'] = time();
-            return true;
+    public static function getEstablishment() {
+        $user = self::user();
+        if (!$user) return null;
+        
+        $db = Database::getInstance();
+        return $db->selectOne('establishments', '*', 'id = ?', [$user['establishment_id']]);
+    }
+    
+    public static function canAccessEstablishment($establishmentId) {
+        $user = self::user();
+        if (!$user) return false;
+        
+        // Super admin peut accéder à tous les établissements
+        if ($user['role'] === 'super_admin') return true;
+        
+        // Autres rôles ne peuvent accéder qu'à leur établissement
+        return $user['establishment_id'] == $establishmentId;
+    }
+    
+    public static function anonymizeUser($userId) {
+        $db = Database::getInstance();
+        
+        $anonymizedData = [
+            'email' => 'anonymized_' . $userId . '@deleted.local',
+            'first_name' => 'Utilisateur',
+            'last_name' => 'Supprimé',
+            'password' => '',
+            'is_active' => 0,
+            'bio' => null,
+            'avatar' => null,
+            'preferences' => null,
+            'updated_at' => date('Y-m-d H:i:s')
+        ];
+        
+        $affected = $db->update('users', $anonymizedData, 'id = ?', [$userId]);
+        
+        if ($affected > 0) {
+            Utils::log("User anonymized: ID $userId", 'INFO');
         }
-        return false;
+        
+        return $affected > 0;
     }
 }
 ?>

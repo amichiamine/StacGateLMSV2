@@ -571,6 +571,6 @@ if (!method_exists('Utils', 'convertToBytes')) {
         }
     }
     
-    Utils::convertToBytes = [UtilsExtension::class, 'convertToBytes'];
+    // Utils::convertToBytes = [UtilsExtension::class, 'convertToBytes'];
 }
 ?>

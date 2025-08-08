@@ -4,13 +4,13 @@
  * Support MySQL et PostgreSQL via PDO
  */
 
-// Configuration base de données depuis variables d'environnement
+// Configuration base de données depuis variables d'environnement avec fallback SQLite
 $db_config = [
-    'type' => env('DB_TYPE', 'mysql'), // mysql ou postgresql
+    'type' => env('DB_TYPE', 'sqlite'), // sqlite, mysql ou postgresql
     'host' => env('DB_HOST', 'localhost'),
     'port' => env('DB_PORT', '3306'),
-    'name' => env('DB_NAME', 'stacgatelms'),
-    'username' => env('DB_USERNAME', 'root'),
+    'name' => env('DB_NAME', (defined('ROOT_PATH') ? ROOT_PATH : __DIR__ . '/..') . '/database.sqlite'),
+    'username' => env('DB_USERNAME', ''),
     'password' => env('DB_PASSWORD', ''),
     'charset' => env('DB_CHARSET', 'utf8mb4'),
     'options' => [
@@ -24,6 +24,9 @@ $db_config = [
 // DSN selon le type de base de données
 function getDSN($config) {
     switch ($config['type']) {
+        case 'sqlite':
+            return "sqlite:{$config['name']}";
+            
         case 'postgresql':
         case 'pgsql':
             return "pgsql:host={$config['host']};port={$config['port']};dbname={$config['name']};";
@@ -38,13 +41,17 @@ function getDSN($config) {
 define('DB_TYPE', $db_config['type']);
 define('IS_POSTGRESQL', in_array(DB_TYPE, ['postgresql', 'pgsql']));
 define('IS_MYSQL', DB_TYPE === 'mysql');
+define('IS_SQLITE', DB_TYPE === 'sqlite');
 
-// Configuration pour les différences SQL entre MySQL et PostgreSQL
-define('SQL_AUTO_INCREMENT', IS_POSTGRESQL ? 'SERIAL PRIMARY KEY' : 'INT AUTO_INCREMENT PRIMARY KEY');
-define('SQL_TEXT_TYPE', IS_POSTGRESQL ? 'TEXT' : 'TEXT');
-define('SQL_JSON_TYPE', IS_POSTGRESQL ? 'JSONB' : 'JSON');
-define('SQL_TIMESTAMP_TYPE', IS_POSTGRESQL ? 'TIMESTAMP' : 'TIMESTAMP');
-define('SQL_BOOLEAN_TYPE', IS_POSTGRESQL ? 'BOOLEAN' : 'TINYINT(1)');
+// Configuration pour les différences SQL entre MySQL, PostgreSQL et SQLite
+define('SQL_AUTO_INCREMENT', 
+    IS_SQLITE ? 'INTEGER PRIMARY KEY AUTOINCREMENT' : 
+    (IS_POSTGRESQL ? 'SERIAL PRIMARY KEY' : 'INT AUTO_INCREMENT PRIMARY KEY')
+);
+define('SQL_TEXT_TYPE', 'TEXT');
+define('SQL_JSON_TYPE', IS_SQLITE ? 'TEXT' : (IS_POSTGRESQL ? 'JSONB' : 'JSON'));
+define('SQL_TIMESTAMP_TYPE', IS_SQLITE ? 'DATETIME' : (IS_POSTGRESQL ? 'TIMESTAMP' : 'TIMESTAMP'));
+define('SQL_BOOLEAN_TYPE', IS_SQLITE ? 'INTEGER' : (IS_POSTGRESQL ? 'BOOLEAN' : 'TINYINT(1)'));
 
 // SQL pour la création des tables
 $create_tables_sql = [
@@ -71,15 +78,14 @@ $create_tables_sql = [
             first_name VARCHAR(100) NOT NULL,
             last_name VARCHAR(100) NOT NULL,
             password VARCHAR(255) NOT NULL,
-            role ENUM('super_admin', 'admin', 'manager', 'formateur', 'apprenant') DEFAULT 'apprenant',
+            role VARCHAR(20) DEFAULT 'apprenant',
             avatar VARCHAR(500),
             is_active " . SQL_BOOLEAN_TYPE . " DEFAULT " . (IS_POSTGRESQL ? 'TRUE' : '1') . ",
             last_login_at " . SQL_TIMESTAMP_TYPE . " NULL,
             email_verified_at " . SQL_TIMESTAMP_TYPE . " NULL,
             created_at " . SQL_TIMESTAMP_TYPE . " DEFAULT " . (IS_POSTGRESQL ? 'CURRENT_TIMESTAMP' : 'CURRENT_TIMESTAMP') . ",
             updated_at " . SQL_TIMESTAMP_TYPE . " DEFAULT " . (IS_POSTGRESQL ? 'CURRENT_TIMESTAMP' : 'CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP') . ",
-            FOREIGN KEY (establishment_id) REFERENCES establishments(id) ON DELETE CASCADE,
-            UNIQUE KEY unique_email_establishment (email, establishment_id)
+            FOREIGN KEY (establishment_id) REFERENCES establishments(id)
         )",
     
     'themes' => "
@@ -112,7 +118,7 @@ $create_tables_sql = [
             price DECIMAL(10,2) DEFAULT 0.00,
             is_free " . SQL_BOOLEAN_TYPE . " DEFAULT " . (IS_POSTGRESQL ? 'TRUE' : '1') . ",
             duration INT DEFAULT 60,
-            level ENUM('debutant', 'intermediaire', 'avance') DEFAULT 'debutant',
+            level VARCHAR(20) DEFAULT 'debutant',
             language VARCHAR(10) DEFAULT 'fr',
             tags TEXT,
             image_url VARCHAR(500),
@@ -150,7 +156,7 @@ $create_tables_sql = [
             course_id INT,
             title VARCHAR(255) NOT NULL,
             description TEXT,
-            type ENUM('quiz', 'exam', 'assignment') DEFAULT 'quiz',
+            type VARCHAR(20) DEFAULT 'quiz',
             questions " . SQL_JSON_TYPE . " DEFAULT " . (IS_POSTGRESQL ? "'[]'" : "'[]'") . ",
             time_limit INT DEFAULT 60,
             max_attempts INT DEFAULT 3,
@@ -184,7 +190,7 @@ $create_tables_sql = [
         CREATE TABLE IF NOT EXISTS collaboration_rooms (
             id " . (IS_POSTGRESQL ? 'SERIAL PRIMARY KEY' : 'INT AUTO_INCREMENT PRIMARY KEY') . ",
             room_id VARCHAR(100) UNIQUE NOT NULL,
-            type ENUM('course', 'studygroup', 'whiteboard', 'assessment') NOT NULL,
+            type VARCHAR(20) NOT NULL,
             resource_id INT NOT NULL,
             establishment_id INT NOT NULL,
             participants " . SQL_JSON_TYPE . " DEFAULT " . (IS_POSTGRESQL ? "'[]'" : "'[]'") . ",
@@ -198,7 +204,7 @@ $create_tables_sql = [
             id " . (IS_POSTGRESQL ? 'SERIAL PRIMARY KEY' : 'INT AUTO_INCREMENT PRIMARY KEY') . ",
             room_id VARCHAR(100) NOT NULL,
             user_id INT NOT NULL,
-            type ENUM('chat', 'cursor', 'text_change', 'whiteboard_draw', 'typing', 'join', 'leave') NOT NULL,
+            type VARCHAR(20) NOT NULL,
             data " . SQL_JSON_TYPE . " DEFAULT " . (IS_POSTGRESQL ? "'{}'" : "'{}'") . ",
             created_at " . SQL_TIMESTAMP_TYPE . " DEFAULT " . (IS_POSTGRESQL ? 'CURRENT_TIMESTAMP' : 'CURRENT_TIMESTAMP') . ",
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE

@@ -1,404 +1,268 @@
 <?php
 /**
  * Utilitaires généraux
+ * Fonctions helpers et outils communs
  */
 
 class Utils {
     
-    /**
-     * Nettoyer et sécuriser les données contre XSS
-     */
-    public static function sanitize($data) {
-        if (is_array($data)) {
-            return array_map([self::class, 'sanitize'], $data);
-        }
-        
-        return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
-    }
-    
-    /**
-     * Générer un ID unique
-     */
-    public static function generateId($length = 16) {
-        return bin2hex(random_bytes($length / 2));
-    }
-    
-    /**
-     * Générer un mot de passe aléatoire
-     */
-    public static function generatePassword($length = 12) {
-        $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
-        return substr(str_shuffle(str_repeat($chars, $length)), 0, $length);
-    }
-    
-    /**
-     * Créer un slug URL-friendly
-     */
-    public static function generateSlug($text) {
-        $text = strtolower($text);
-        $text = preg_replace('/[^a-z0-9]+/', '-', $text);
-        return trim($text, '-');
-    }
-    
-    /**
-     * Formater une date
-     */
-    public static function formatDate($date, $format = 'd/m/Y H:i') {
-        if (is_string($date)) {
-            $date = new DateTime($date);
-        }
-        return $date->format($format);
-    }
-    
-    /**
-     * Temps relatif (il y a X)
-     */
-    public static function timeAgo($date) {
-        if (is_string($date)) {
-            $date = new DateTime($date);
-        }
-        
-        $now = new DateTime();
-        $diff = $now->diff($date);
-        
-        if ($diff->days > 7) {
-            return self::formatDate($date, 'd/m/Y');
-        } elseif ($diff->days > 0) {
-            return "Il y a " . $diff->days . " jour" . ($diff->days > 1 ? "s" : "");
-        } elseif ($diff->h > 0) {
-            return "Il y a " . $diff->h . " heure" . ($diff->h > 1 ? "s" : "");
-        } elseif ($diff->i > 0) {
-            return "Il y a " . $diff->i . " minute" . ($diff->i > 1 ? "s" : "");
-        } else {
-            return "À l'instant";
-        }
-    }
-    
-    /**
-     * Formater un nombre
-     */
-    public static function formatNumber($number, $decimals = 0) {
-        return number_format($number, $decimals, ',', ' ');
-    }
-    
-    /**
-     * Formater la taille d'un fichier
-     */
-    public static function formatFileSize($bytes) {
-        $units = ['B', 'KB', 'MB', 'GB'];
-        $bytes = max($bytes, 0);
-        $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
-        $pow = min($pow, count($units) - 1);
-        
-        $bytes /= pow(1024, $pow);
-        
-        return round($bytes, 1) . ' ' . $units[$pow];
-    }
-    
-    /**
-     * Tronquer du texte
-     */
-    public static function truncate($text, $length = 100, $suffix = '...') {
-        if (strlen($text) <= $length) {
-            return $text;
-        }
-        
-        return substr($text, 0, $length - strlen($suffix)) . $suffix;
-    }
-    
-    /**
-     * Valider un email
-     */
-    public static function isValidEmail($email) {
-        return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
-    }
-    
-    /**
-     * Valider une URL
-     */
-    public static function isValidUrl($url) {
-        return filter_var($url, FILTER_VALIDATE_URL) !== false;
-    }
-    
-    /**
-     * Rechercher dans un texte
-     */
-    public static function contains($haystack, $needle, $caseSensitive = false) {
-        if (!$caseSensitive) {
-            $haystack = strtolower($haystack);
-            $needle = strtolower($needle);
-        }
-        
-        return strpos($haystack, $needle) !== false;
-    }
-    
-    /**
-     * Obtenir l'IP du client
-     */
-    public static function getClientIp() {
-        if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
-            return $_SERVER['HTTP_CLIENT_IP'];
-        } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-            return $_SERVER['HTTP_X_FORWARDED_FOR'];
-        } else {
-            return $_SERVER['REMOTE_ADDR'];
-        }
-    }
-    
-    /**
-     * Obtenir le User Agent
-     */
-    public static function getUserAgent() {
-        return $_SERVER['HTTP_USER_AGENT'] ?? '';
-    }
-    
-    /**
-     * Détecter si c'est un mobile
-     */
-    public static function isMobile() {
-        return preg_match('/(Mobile|Android|iPhone|iPad|iPod|BlackBerry|Windows Phone)/', self::getUserAgent());
-    }
-    
-    /**
-     * Cache simple
-     */
-    public static function cache($key, $data = null, $ttl = 3600) {
-        $cacheDir = ROOT_PATH . '/cache';
-        if (!is_dir($cacheDir)) {
-            mkdir($cacheDir, 0755, true);
-        }
-        
-        $cacheFile = $cacheDir . '/' . md5($key) . '.cache';
-        
-        if ($data === null) {
-            // Lecture du cache
-            if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < $ttl) {
-                return unserialize(file_get_contents($cacheFile));
-            }
-            return false;
-        } else {
-            // Écriture du cache
-            file_put_contents($cacheFile, serialize($data));
-            return $data;
-        }
-    }
-    
-    /**
-     * Supprimer une entrée du cache
-     */
-    public static function forgetCache($key) {
-        $cacheFile = ROOT_PATH . '/cache/' . md5($key) . '.cache';
-        if (file_exists($cacheFile)) {
-            unlink($cacheFile);
-        }
-    }
-    
-    /**
-     * Vider tout le cache
-     */
-    public static function clearCache() {
-        $cacheDir = ROOT_PATH . '/cache';
-        if (is_dir($cacheDir)) {
-            $files = glob($cacheDir . '/*.cache');
-            foreach ($files as $file) {
-                unlink($file);
-            }
-        }
-    }
-    
-    /**
-     * Écrire dans les logs
-     */
     public static function log($message, $level = 'INFO') {
         if (!LOG_ENABLED) return;
         
-        $logDir = ROOT_PATH . '/logs';
-        if (!is_dir($logDir)) {
-            mkdir($logDir, 0755, true);
-        }
-        
-        $logFile = $logDir . '/' . date('Y-m-d') . '.log';
         $timestamp = date('Y-m-d H:i:s');
-        $ip = self::getClientIp();
+        $logEntry = "[$timestamp] [$level] $message" . PHP_EOL;
         
-        $logEntry = "[$timestamp] [$level] [$ip] $message" . PHP_EOL;
+        $logFile = LOG_PATH . '/app.log';
         file_put_contents($logFile, $logEntry, FILE_APPEND | LOCK_EX);
     }
     
-    /**
-     * Redirection avec message flash
-     */
-    public static function redirectWithMessage($url, $message, $type = 'info') {
-        $_SESSION['flash_message'] = [
-            'message' => $message,
-            'type' => $type,
-            'timestamp' => time()
-        ];
-        
+    public static function redirect($url) {
         header("Location: $url");
         exit;
     }
     
-    /**
-     * Récupérer le message flash
-     */
+    public static function redirectWithMessage($url, $message, $type = 'info') {
+        $_SESSION['flash_message'] = ['text' => $message, 'type' => $type];
+        self::redirect($url);
+    }
+    
     public static function getFlashMessage() {
         if (isset($_SESSION['flash_message'])) {
             $message = $_SESSION['flash_message'];
             unset($_SESSION['flash_message']);
-            
-            // Expirer après 5 minutes
-            if (time() - $message['timestamp'] > 300) {
-                return null;
-            }
-            
             return $message;
         }
-        
         return null;
     }
     
-    /**
-     * Upload sécurisé d'un fichier
-     */
-    public static function uploadFile($file, $destination, $allowedTypes = null) {
-        if (!isset($file['error']) || is_array($file['error'])) {
-            throw new Exception('Paramètres de fichier invalides');
+    public static function sanitizeInput($input) {
+        if (is_array($input)) {
+            return array_map([self::class, 'sanitizeInput'], $input);
         }
         
-        if ($file['error'] !== UPLOAD_ERR_OK) {
-            throw new Exception('Erreur d\'upload: ' . $file['error']);
+        return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
+    }
+    
+    public static function validateEmail($email) {
+        return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
+    }
+    
+    public static function validatePassword($password) {
+        // Au moins 8 caractères, une majuscule, une minuscule, un chiffre
+        return preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/', $password);
+    }
+    
+    public static function generateSlug($text) {
+        $text = strtolower($text);
+        $text = preg_replace('/[^a-z0-9]+/', '-', $text);
+        $text = trim($text, '-');
+        return $text;
+    }
+    
+    public static function formatBytes($size, $precision = 2) {
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        
+        for ($i = 0; $size > 1024 && $i < count($units) - 1; $i++) {
+            $size /= 1024;
         }
         
-        if ($file['size'] > UPLOAD_MAX_SIZE) {
-            throw new Exception('Fichier trop volumineux');
+        return round($size, $precision) . ' ' . $units[$i];
+    }
+    
+    public static function timeAgo($datetime) {
+        $time = time() - strtotime($datetime);
+        
+        if ($time < 60) return 'à l\'instant';
+        if ($time < 3600) return floor($time/60) . ' min';
+        if ($time < 86400) return floor($time/3600) . ' h';
+        if ($time < 2592000) return floor($time/86400) . ' j';
+        if ($time < 31536000) return floor($time/2592000) . ' mois';
+        
+        return floor($time/31536000) . ' ans';
+    }
+    
+    public static function truncateText($text, $length = 100, $suffix = '...') {
+        if (strlen($text) <= $length) {
+            return $text;
+        }
+        
+        return substr($text, 0, $length) . $suffix;
+    }
+    
+    public static function isValidUrl($url) {
+        return filter_var($url, FILTER_VALIDATE_URL) !== false;
+    }
+    
+    public static function generateRandomString($length = 32) {
+        return bin2hex(random_bytes($length / 2));
+    }
+    
+    public static function uploadFile($file, $allowedTypes = null, $maxSize = null) {
+        if (!$file || $file['error'] !== UPLOAD_ERR_OK) {
+            throw new Exception('Erreur lors de l\'upload du fichier');
         }
         
         $allowedTypes = $allowedTypes ?: ALLOWED_FILE_TYPES;
-        $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        $maxSize = $maxSize ?: UPLOAD_MAX_SIZE;
         
+        // Vérifier la taille
+        if ($file['size'] > $maxSize) {
+            throw new Exception('Fichier trop volumineux (' . self::formatBytes($maxSize) . ' max)');
+        }
+        
+        // Vérifier l'extension
+        $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
         if (!in_array($extension, $allowedTypes)) {
             throw new Exception('Type de fichier non autorisé');
         }
         
-        $uploadDir = ROOT_PATH . '/uploads/' . $destination;
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0755, true);
+        // Générer un nom unique
+        $filename = self::generateRandomString(16) . '.' . $extension;
+        $uploadPath = UPLOADS_PATH . '/' . $filename;
+        
+        if (!move_uploaded_file($file['tmp_name'], $uploadPath)) {
+            throw new Exception('Erreur lors de la sauvegarde du fichier');
         }
         
-        $filename = self::generateId() . '.' . $extension;
-        $filepath = $uploadDir . '/' . $filename;
+        return $filename;
+    }
+    
+    public static function deleteFile($filename) {
+        $filepath = UPLOADS_PATH . '/' . $filename;
+        if (file_exists($filepath)) {
+            return unlink($filepath);
+        }
+        return false;
+    }
+    
+    public static function formatPrice($price, $currency = '€') {
+        return number_format($price, 2, ',', ' ') . ' ' . $currency;
+    }
+    
+    public static function formatDate($date, $format = 'd/m/Y à H:i') {
+        return date($format, strtotime($date));
+    }
+    
+    public static function getBrowserInfo() {
+        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
         
-        if (!move_uploaded_file($file['tmp_name'], $filepath)) {
-            throw new Exception('Échec de l\'upload');
+        // Détection simple du navigateur
+        if (strpos($userAgent, 'Chrome') !== false) return 'Chrome';
+        if (strpos($userAgent, 'Firefox') !== false) return 'Firefox';
+        if (strpos($userAgent, 'Safari') !== false) return 'Safari';
+        if (strpos($userAgent, 'Edge') !== false) return 'Edge';
+        
+        return 'Inconnu';
+    }
+    
+    public static function getClientIp() {
+        $ipKeys = ['HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP', 'HTTP_CLIENT_IP', 'REMOTE_ADDR'];
+        
+        foreach ($ipKeys as $key) {
+            if (!empty($_SERVER[$key])) {
+                $ip = $_SERVER[$key];
+                // Prendre la première IP si plusieurs (proxy)
+                if (strpos($ip, ',') !== false) {
+                    $ip = trim(explode(',', $ip)[0]);
+                }
+                if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+                    return $ip;
+                }
+            }
         }
         
-        return $destination . '/' . $filename;
+        return $_SERVER['REMOTE_ADDR'] ?? 'unknown';
     }
     
-    /**
-     * Convertir un array en CSV
-     */
-    public static function arrayToCsv($array, $delimiter = ';') {
-        if (empty($array)) return '';
+    public static function cache($key, $data = null, $expiry = null) {
+        if (!CACHE_ENABLED) return $data;
         
-        $output = fopen('php://temp', 'r+');
+        $expiry = $expiry ?: CACHE_LIFETIME;
+        $cacheFile = CACHE_PATH . '/' . md5($key) . '.cache';
         
-        // En-têtes
-        fputcsv($output, array_keys($array[0]), $delimiter);
+        if ($data === null) {
+            // Lecture du cache
+            if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < $expiry) {
+                return unserialize(file_get_contents($cacheFile));
+            }
+            return null;
+        } else {
+            // Écriture du cache
+            file_put_contents($cacheFile, serialize($data), LOCK_EX);
+            return $data;
+        }
+    }
+    
+    public static function clearCache($pattern = '*') {
+        if (!CACHE_ENABLED) return;
         
-        // Données
-        foreach ($array as $row) {
-            fputcsv($output, $row, $delimiter);
+        $files = glob(CACHE_PATH . '/' . $pattern . '.cache');
+        foreach ($files as $file) {
+            unlink($file);
+        }
+    }
+    
+    public static function generateOTP($length = 6) {
+        return str_pad(random_int(0, pow(10, $length) - 1), $length, '0', STR_PAD_LEFT);
+    }
+    
+    public static function isBot() {
+        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+        $bots = ['bot', 'crawl', 'slurp', 'spider', 'facebook', 'twitter'];
+        
+        foreach ($bots as $bot) {
+            if (stripos($userAgent, $bot) !== false) {
+                return true;
+            }
         }
         
-        rewind($output);
-        $csv = stream_get_contents($output);
-        fclose($output);
-        
-        return $csv;
+        return false;
     }
     
-    /**
-     * Générer une couleur aléatoire
-     */
-    public static function generateRandomColor() {
-        return '#' . str_pad(dechex(mt_rand(0, 0xFFFFFF)), 6, '0', STR_PAD_LEFT);
-    }
-    
-    /**
-     * Détecter si une couleur est claire
-     */
-    public static function isLightColor($color) {
-        $hex = ltrim($color, '#');
-        $r = hexdec(substr($hex, 0, 2));
-        $g = hexdec(substr($hex, 2, 2));
-        $b = hexdec(substr($hex, 4, 2));
+    public static function rateLimitCheck($identifier, $maxRequests = 60, $windowMinutes = 1) {
+        $cacheKey = "rate_limit_$identifier";
+        $requests = self::cache($cacheKey) ?: [];
+        $now = time();
+        $windowStart = $now - ($windowMinutes * 60);
         
-        $brightness = (($r * 299) + ($g * 587) + ($b * 114)) / 1000;
-        return $brightness > 155;
-    }
-    
-    /**
-     * Convertir une taille en bytes
-     */
-    public static function convertToBytes($value) {
-        $units = ['B', 'K', 'M', 'G', 'T', 'P'];
-        $value = trim($value);
-        $last = strtoupper(substr($value, -1));
-        $value = (int) substr($value, 0, -1);
+        // Nettoyer les anciennes requêtes
+        $requests = array_filter($requests, function($timestamp) use ($windowStart) {
+            return $timestamp > $windowStart;
+        });
         
-        switch($last) {
-            case 'G':
-                $value *= 1024;
-            case 'M':
-                $value *= 1024;
-            case 'K':
-                $value *= 1024;
+        if (count($requests) >= $maxRequests) {
+            return false; // Rate limit dépassé
         }
         
-        return $value;
-    }
-    
-    /**
-     * Formater une durée relative (il y a X temps)
-     */
-    public static function timeAgo($datetime) {
-        $time = time() - strtotime($datetime);
+        // Ajouter la requête actuelle
+        $requests[] = $now;
+        self::cache($cacheKey, $requests, $windowMinutes * 60);
         
-        if ($time < 60) return 'À l\'instant';
-        if ($time < 3600) return floor($time/60) . ' min';
-        if ($time < 86400) return floor($time/3600) . ' h';
-        if ($time < 2592000) return floor($time/86400) . ' j';
-        if ($time < 31104000) return floor($time/2592000) . ' mois';
-        
-        return floor($time/31104000) . ' ans';
-    }
-    
-    /**
-     * Vérifier et créer un répertoire s'il n'existe pas
-     */
-    public static function ensureDirectory($path) {
-        if (!is_dir($path)) {
-            return mkdir($path, 0755, true);
-        }
         return true;
     }
-}
-
-/**
- * Générer un token CSRF
- */
-function generateCSRFToken() {
-    if (!isset($_SESSION['csrf_token'])) {
-        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    
+    public static function jsonResponse($data, $statusCode = 200) {
+        http_response_code($statusCode);
+        header('Content-Type: application/json');
+        echo json_encode($data);
+        exit;
     }
-    return $_SESSION['csrf_token'];
+    
+    public static function errorResponse($message, $statusCode = 400) {
+        self::jsonResponse(['error' => $message], $statusCode);
+    }
+    
+    public static function successResponse($data = null, $message = 'Success') {
+        $response = ['message' => $message];
+        if ($data !== null) {
+            $response['data'] = $data;
+        }
+        self::jsonResponse($response);
+    }
 }
 
-/**
- * Valider un token CSRF
- */
+// Fonction CSRF token pour compatibility (alias)
 function validateCSRFToken($token) {
-    return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
+    return verifyCSRFToken($token);
 }
+?>
