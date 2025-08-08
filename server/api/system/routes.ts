@@ -1,10 +1,14 @@
 import { Router } from "express";
 import { DatabaseStorage } from "../../storage";
 import { SystemService } from "../../services";
+import monitoringRouter from './monitoring';
 
 const router = Router();
 const storage = new DatabaseStorage();
 const systemService = new SystemService(storage);
+
+// Mount monitoring routes
+router.use('/', monitoringRouter);
 
 // Get system versions
 router.get('/versions', async (req, res) => {

@@ -1,10 +1,25 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { setupSecurity } from "./middleware/security";
+import { requestMonitoring } from "./middleware/monitoring";
+import { apiLimiter } from "./middleware/rateLimiter";
+import { setupSwagger } from "./docs/swagger";
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+
+// Setup security middleware (helmet, compression, etc.)
+setupSecurity(app);
+
+// Setup monitoring
+app.use(requestMonitoring);
+
+// Rate limiting for API routes
+app.use('/api', apiLimiter);
+
+// Body parsing
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -37,6 +52,9 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Setup API documentation
+  setupSwagger(app);
+  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
