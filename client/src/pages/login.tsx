@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,9 +8,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { GraduationCap, User, Mail, Lock } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export default function Login() {
+  const [, navigate] = useLocation();
+  const queryClient = useQueryClient();
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [registerEmail, setRegisterEmail] = useState("");
@@ -36,15 +39,21 @@ export default function Login() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify({ email: loginEmail, password: loginPassword }),
       });
 
       if (response.ok) {
+        // Invalidate auth queries to refresh user data
+        await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+        
         toast({
           title: "Connexion réussie",
           description: "Redirection vers le tableau de bord...",
         });
-        window.location.href = "/dashboard";
+        
+        // Use React navigation instead of window.location.href
+        setTimeout(() => navigate("/dashboard"), 500);
       } else {
         const error = await response.json();
         throw new Error(error.message || "Erreur de connexion");
@@ -80,6 +89,7 @@ export default function Login() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify({ 
           email: registerEmail, 
           password: registerPassword,
@@ -91,11 +101,16 @@ export default function Login() {
       });
 
       if (response.ok) {
+        // Invalidate auth queries to refresh user data
+        await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+        
         toast({
           title: "Compte créé avec succès",
           description: "Redirection vers le tableau de bord...",
         });
-        window.location.href = "/dashboard";
+        
+        // Use React navigation instead of window.location.href
+        setTimeout(() => navigate("/dashboard"), 500);
       } else {
         const error = await response.json();
         throw new Error(error.message || "Erreur lors de la création du compte");

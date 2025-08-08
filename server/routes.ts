@@ -18,10 +18,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     secret: process.env.SESSION_SECRET || 'dev-secret-key-StacGateLMS-2025',
     resave: false,
     saveUninitialized: false,
-    name: 'stacgate.sid',
+    name: 'connect.sid',
     cookie: { 
       secure: false, // set to true in production with HTTPS
-      httpOnly: false, // Allow JavaScript access to cookies for better browser compatibility
+      httpOnly: true, // Security: prevent XSS
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       sameSite: 'lax'
     },

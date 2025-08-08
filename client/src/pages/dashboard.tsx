@@ -20,11 +20,12 @@ import {
   Archive,
   RefreshCw
 } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/navigation";
 
 export default function Dashboard() {
+  const [, navigate] = useLocation();
   const { user, isLoading, isAuthenticated } = useAuth();
   const { toast } = useToast();
 
@@ -48,11 +49,11 @@ export default function Dashboard() {
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/login";
+        navigate("/login");
       }, 1500);
       return;
     }
-  }, [isAuthenticated, isLoading, toast]);
+  }, [isAuthenticated, isLoading, toast, navigate]);
 
   if (isLoading) {
     return (
