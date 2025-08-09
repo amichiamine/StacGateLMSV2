@@ -10,7 +10,7 @@ const connectionConfig = {
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'stacgate_lms',
   charset: 'utf8mb4',
-  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
+  ...(process.env.DB_SSL === 'true' && { ssl: { rejectUnauthorized: false } })
 };
 
 // Pool de connexions MySQL
